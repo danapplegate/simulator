@@ -72,6 +72,13 @@ impl Mul<Vector1<f32>> for f32 {
     }
 }
 
+impl Mul<Vector1<i32>> for i32 {
+    type Output = Vector1<i32>;
+    fn mul(self, vector: Vector1<i32>) -> Self::Output {
+        Vector1(self * vector.0)
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct Vector2(pub f32, pub f32);
 
@@ -127,6 +134,17 @@ mod tests {
     fn multiplying_a_vector1_by_a_scalar_works() {
         let v = Vector1(5.0);
         assert_eq!(v * 2.0, Vector1(10.0));
+    }
+
+    #[test]
+    fn multiplying_a_vector1_by_an_integer_scalar_works() {
+        let v = Vector1(6);
+        assert_eq!(v * 2, Vector1(12));
+    }
+
+    #[test]
+    fn multiplying_an_integer_scalar_by_a_vector1_works() {
+        assert_eq!(3 * Vector1(3), Vector1(9));
     }
 
     #[test]
