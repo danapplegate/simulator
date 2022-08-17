@@ -1,17 +1,9 @@
 extern crate nalgebra as na;
 
-pub mod math;
-
 use na::Vector2;
 use std::collections::HashMap;
 
-const GRAVITY_MAGNITUDE: f32 = 9.81;
-const GRAVITY2: Vector2<f32> = Vector2::new(0.0, -GRAVITY_MAGNITUDE);
-
-#[derive(Debug)]
-pub enum SimulationType {
-    Newtonian,
-}
+pub mod output_adapter;
 
 pub trait Massive {
     fn mass(&self) -> f32;
@@ -52,7 +44,6 @@ pub struct SimulationStep<'a> {
 }
 
 pub struct SimulationRun<'a> {
-    t_start: f32,
     t_step: f32,
     t_end: f32,
     t_current: f32,
@@ -91,18 +82,12 @@ impl<'a> Iterator for SimulationRun<'a> {
 
 #[derive(Debug)]
 pub struct Simulation<'a> {
-    simulation_type: SimulationType,
-    dimensions: u32,
     bodies: Vec<Body<'a>>,
 }
 
 impl<'a> Simulation<'a> {
-    pub fn new(simulation_type: SimulationType, dimensions: u32) -> Self {
-        Self {
-            simulation_type,
-            dimensions,
-            bodies: Vec::new(),
-        }
+    pub fn new() -> Self {
+        Self { bodies: Vec::new() }
     }
 
     pub fn add_body(&mut self, body: Body<'a>) {
@@ -111,7 +96,6 @@ impl<'a> Simulation<'a> {
 
     pub fn new_run(&self) -> SimulationRun {
         SimulationRun {
-            t_start: 0.0,
             t_step: 0.1,
             t_end: 10.0,
             t_current: 0.0,
