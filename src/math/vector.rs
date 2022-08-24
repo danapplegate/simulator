@@ -16,17 +16,17 @@ pub struct Vector3 {
 }
 
 pub trait Distance {
-    fn distance(&self, other: &Self) -> f64;
+    fn distance(self, other: Self) -> f64;
 }
 
-impl Distance for Vector1 {
-    fn distance(&self, other: &Vector1) -> f64 {
+impl Distance for &Vector1 {
+    fn distance(self, other: &Vector1) -> f64 {
         (self.x - other.x).abs()
     }
 }
 
-impl Distance for Vector2 {
-    fn distance(&self, other: &Vector2) -> f64 {
+impl Distance for &Vector2 {
+    fn distance(self, other: &Vector2) -> f64 {
         ((self.x - other.x).powi(2) + (self.y - other.y).powi(2)).sqrt()
     }
 }
@@ -41,8 +41,8 @@ impl Add<&Vector2> for &Vector2 {
     }
 }
 
-impl Distance for Vector3 {
-    fn distance(&self, other: &Vector3) -> f64 {
+impl Distance for &Vector3 {
+    fn distance(self, other: &Vector3) -> f64 {
         ((self.x - other.x).powi(2) + (self.y - other.y).powi(2) + (self.z - other.z).powi(2))
             .sqrt()
     }

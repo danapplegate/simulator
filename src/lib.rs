@@ -2,16 +2,16 @@ pub mod force;
 pub mod math;
 pub mod output_adapter;
 
-use crate::math::vector::{Vector1, Vector2};
+use crate::math::vector::{Distance, Vector1, Vector2};
 use std::collections::HashMap;
 
 pub trait Massive {
     fn mass(&self) -> f64;
 }
 
-pub trait Positioned {
-    type Output;
-    fn position(self) -> Self::Output;
+pub trait Positioned<'a> {
+    type Output: Distance;
+    fn position(&'a self) -> Self::Output;
 }
 
 pub type PositionVector1 = Vector1;
@@ -30,9 +30,9 @@ impl<'a> Massive for Body<'a> {
     }
 }
 
-impl<'a> Positioned for &'a Body<'a> {
+impl<'a> Positioned<'a> for Body<'a> {
     type Output = &'a PositionVector2;
-    fn position(self) -> Self::Output {
+    fn position(&'a self) -> Self::Output {
         &self.position
     }
 }
