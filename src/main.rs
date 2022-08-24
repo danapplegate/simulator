@@ -6,7 +6,9 @@ use simulator::{Body, PositionVector2, Positioned};
 // Earth mass in kg
 const EARTH_MASS: f64 = 5.9722e+24;
 // Earth radius in meters at equator
-const EARTH_RADIUS: f64 = 6.3781e+6;
+const EARTH_RADIUS: f64 = 6.3781370e+6;
+// Earth radius in meters at pole
+// const EARTH_RADIUS: f64 = 6.3567523e+6;
 
 fn main() {
     let body1 = Body::new(
