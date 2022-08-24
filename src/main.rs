@@ -18,7 +18,7 @@ fn main() {
         }),
     );
     let body2 = Body::new(
-        "body2",
+        "Earth",
         EARTH_MASS,
         Some(PositionVector2 { x: 0.0, y: 0.0 }),
     );
