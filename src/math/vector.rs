@@ -19,18 +19,18 @@ pub struct Vector3 {
 }
 
 pub trait Distance {
-    fn distance(self, other: Self) -> f64;
+    fn distance(&self, other: &Self) -> f64;
     // fn direction(&self, from: Self) -> Self;
     // fn unit(&self) -> Self;
-    fn magnitude(self) -> f64;
+    fn magnitude(&self) -> f64;
 }
 
-impl Distance for &Vector1 {
-    fn distance(self, other: &Vector1) -> f64 {
+impl Distance for Vector1 {
+    fn distance(&self, other: &Vector1) -> f64 {
         (self - other).magnitude()
     }
 
-    fn magnitude(self) -> f64 {
+    fn magnitude(&self) -> f64 {
         self.x.abs()
     }
 }
@@ -44,13 +44,23 @@ impl Sub<&Vector1> for &Vector1 {
     }
 }
 
-impl Distance for &Vector2 {
-    fn distance(self, other: &Vector2) -> f64 {
+impl Distance for Vector2 {
+    fn distance(&self, other: &Vector2) -> f64 {
         (self - other).magnitude()
     }
 
-    fn magnitude(self) -> f64 {
+    fn magnitude(&self) -> f64 {
         (self.x.powi(2) + self.y.powi(2)).sqrt()
+    }
+}
+
+impl Distance for &Vector2 {
+    fn distance(&self, other: &&Vector2) -> f64 {
+        (*self - *other).magnitude()
+    }
+
+    fn magnitude(&self) -> f64 {
+        self.magnitude()
     }
 }
 
@@ -74,12 +84,12 @@ impl Sub<&Vector2> for &Vector2 {
     }
 }
 
-impl Distance for &Vector3 {
-    fn distance(self, other: &Vector3) -> f64 {
+impl Distance for Vector3 {
+    fn distance(&self, other: &Vector3) -> f64 {
         (self - other).magnitude()
     }
 
-    fn magnitude(self) -> f64 {
+    fn magnitude(&self) -> f64 {
         (self.x.powi(2) + self.y.powi(2) + self.z.powi(2)).sqrt()
     }
 }
