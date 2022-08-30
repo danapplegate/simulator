@@ -15,8 +15,8 @@ fn main() {
         "body1",
         1.0,
         Some(PositionVector2 {
-            x: 0.0,
-            y: EARTH_RADIUS,
+            x: EARTH_RADIUS,
+            y: 0.0,
         }),
     );
     let body2 = Body::new(
@@ -31,9 +31,18 @@ fn main() {
         body1.position().distance(body2.position())
     );
     println!(
-        "Gravitational force between {} and {}: {} N",
-        body1.label,
+        "Direction to {} from {}: {:?}",
         body2.label,
-        Gravity::calculate_between(&body1, &body2)
+        body1.label,
+        body1.position().direction(body2.position())
     );
+    let mut gravity = Gravity::new();
+    let force_vector = gravity.calculate(&body1, &body2);
+    println!(
+        "Force on {} by {}: {:?} N",
+        body1.label, body2.label, force_vector
+    );
+
+    let fv2 = gravity.calculate(&body2, &body1);
+    println!("Force on {} by {}: {:?} N", body2.label, body1.label, fv2);
 }

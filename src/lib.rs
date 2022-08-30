@@ -16,12 +16,14 @@ pub trait Positioned<'a> {
 
 pub type PositionVector1 = Vector1;
 pub type PositionVector2 = Vector2;
+pub type ForceVector2 = Vector2;
 
 #[derive(Debug)]
 pub struct Body<'a> {
     pub label: &'a str,
     mass: f64,
     position: PositionVector2,
+    forces: HashMap<String, ForceVector2>,
 }
 
 impl<'a> Massive for Body<'a> {
@@ -44,6 +46,7 @@ impl<'a> Body<'a> {
             label,
             mass,
             position: p,
+            forces: HashMap::new(),
         }
     }
 }
@@ -81,6 +84,7 @@ impl<'a> SimulationRun<'a> {
                     },
                 mass: body.mass,
                 label: body.label,
+                forces: HashMap::new(),
             };
             body_states.insert(body.label, body_state);
         }
