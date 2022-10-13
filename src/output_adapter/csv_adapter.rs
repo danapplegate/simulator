@@ -20,7 +20,7 @@ impl<'a> OutputAdapter<'a> for CsvAdapter<'a> {
             print!("{:.1}", step.t);
             for (_, body) in step.body_states() {
                 let position = body.position();
-                println!(",{},{}", position.x, position.y);
+                println!(",{},{}", position.x(), position.y());
             }
         }
     }

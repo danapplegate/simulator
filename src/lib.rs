@@ -33,9 +33,9 @@ impl<'a> Massive for Body<'a> {
 }
 
 impl<'a> Positioned<'a> for Body<'a> {
-    type Output = &'a PositionVector2;
+    type Output = PositionVector2;
     fn position(&'a self) -> Self::Output {
-        &self.position
+        self.position
     }
 }
 
@@ -78,10 +78,7 @@ impl<'a> SimulationRun<'a> {
         for body in self.simulation.bodies.iter() {
             let body_state = Body {
                 position: &body.position
-                    + &PositionVector2 {
-                        x: 0.0,
-                        y: -0.5_f64 * self.t_current.powi(2) * 9.81_f64,
-                    },
+                    + &PositionVector2::new(0.0, -0.5_f64 * self.t_current.powi(2) * 9.81_f64),
                 mass: body.mass,
                 label: body.label,
                 forces: HashMap::new(),

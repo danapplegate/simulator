@@ -11,30 +11,19 @@ const EARTH_RADIUS: f64 = 6.3781370e+6;
 // const EARTH_RADIUS: f64 = 6.3567523e+6;
 
 fn main() {
-    let body1 = Body::new(
-        "body1",
-        1.0,
-        Some(PositionVector2 {
-            x: EARTH_RADIUS,
-            y: 0.0,
-        }),
-    );
-    let body2 = Body::new(
-        "Earth",
-        EARTH_MASS,
-        Some(PositionVector2 { x: 0.0, y: 0.0 }),
-    );
+    let body1 = Body::new("body1", 1.0, Some(PositionVector2::new(EARTH_RADIUS, 0.0)));
+    let body2 = Body::new("Earth", EARTH_MASS, Some(PositionVector2::new(0.0, 0.0)));
     println!(
         "Distance between {} and {}: {} m",
         body1.label,
         body2.label,
-        body1.position().distance(body2.position())
+        body1.position().distance(&body2.position())
     );
     println!(
         "Direction to {} from {}: {:?}",
         body2.label,
         body1.label,
-        body1.position().direction(body2.position())
+        body1.position().direction(&body2.position())
     );
     let mut gravity = Gravity::new();
     let force_vector = gravity.calculate(&body1, &body2);
