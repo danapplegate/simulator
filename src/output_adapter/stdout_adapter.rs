@@ -1,5 +1,5 @@
 use crate::output_adapter::OutputAdapter;
-use crate::{compute_next_step, BodyMap, Simulation};
+use crate::{compute_next_step, Simulation};
 
 pub struct StdoutAdapter<'a, const N: usize> {
     simulation: &'a Simulation<N>,

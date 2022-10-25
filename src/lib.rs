@@ -1,8 +1,6 @@
-use crate::force::{Force, ForceVector, Gravity};
+use crate::force::{ForceVector, Gravity};
 use crate::math::vector::{Distance, Vector};
-use itertools::Itertools;
 use std::collections::HashMap;
-use std::mem;
 
 pub mod force;
 pub mod math;

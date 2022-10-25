@@ -33,14 +33,6 @@ impl Gravity {
         Gravity { g: g.unwrap_or(G) }
     }
 
-    fn bodies_key<'a, const N: usize>(b1: &Body<N>, b2: &Body<N>) -> String {
-        if b1.label < b2.label {
-            format!("{}_{}", b1.label, b2.label)
-        } else {
-            format!("{}_{}", b2.label, b1.label)
-        }
-    }
-
     pub fn forces_from_bodies<const N: usize>(&self, bodies: &Vec<&Body<N>>) -> ForceMap<N> {
         let mut force_map = ForceMap::new();
         for body_pair in bodies.iter().combinations(2) {
@@ -66,7 +58,6 @@ impl Force for Gravity {
         let magnitude = self.g * on.mass * from.mass / distance.powi(2);
 
         let on_force_name = format!("gravity_{}", from.label);
-        let from_force_name = format!("gravity_{}", on.label);
         ForceVector {
             label: on_force_name,
             v: magnitude * &on.position.direction(&from.position),
