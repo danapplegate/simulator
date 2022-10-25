@@ -1,7 +1,7 @@
 use crate::Simulation;
 
-pub trait OutputAdapter<'a> {
-    fn new(simulation: &'a Simulation) -> Self;
+pub trait OutputAdapter<'a, const N: usize> {
+    fn new(simulation: &'a Simulation<N>) -> Self;
     fn output(&self);
 }
 

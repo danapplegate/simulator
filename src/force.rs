@@ -1,68 +1,77 @@
 use crate::math::Distance;
-use crate::{Body, Massive, Positioned, Vector2};
+use crate::{Body, PositionVector};
+use itertools::Itertools;
 use std::collections::HashMap;
 
 const G: f64 = 6.67430e-11;
 
 #[derive(Debug)]
-pub struct ForceVector<T: Distance> {
-    label: String,
-    v: T,
+pub struct ForceVector<const N: usize> {
+    pub label: String,
+    pub v: PositionVector<N>,
 }
 
-impl<T: Distance> ForceVector<T> {
+impl<const N: usize> ForceVector<N> {
     pub fn magnitude(&self) -> f64 {
         self.v.magnitude()
     }
 }
 
-pub trait Force<'a> {
+pub trait Force {
     // Returns the magnitude of the force calculated between
     // two objects of type T.
-    fn calculate(&mut self, on: &'a Body<'a>, from: &'a Body<'a>) -> ForceVector<Vector2>;
+    fn calculate<'a, const N: usize>(&self, on: &'a Body<N>, from: &'a Body<N>) -> ForceVector<N>;
 }
 
+#[derive(Debug)]
 pub struct Gravity {
-    magnitudes: HashMap<String, f64>,
+    g: f64,
 }
 
 impl Gravity {
-    pub fn new() -> Self {
-        Gravity {
-            magnitudes: HashMap::new(),
-        }
+    pub fn new(g: Option<f64>) -> Self {
+        Gravity { g: g.unwrap_or(G) }
     }
 
-    fn bodies_key<'a>(b1: &Body<'a>, b2: &Body<'a>) -> String {
+    fn bodies_key<'a, const N: usize>(b1: &Body<N>, b2: &Body<N>) -> String {
         if b1.label < b2.label {
             format!("{}_{}", b1.label, b2.label)
         } else {
             format!("{}_{}", b2.label, b1.label)
         }
     }
+
+    pub fn forces_from_bodies<const N: usize>(&self, bodies: &Vec<&Body<N>>) -> ForceMap<N> {
+        let mut force_map = ForceMap::new();
+        for body_pair in bodies.iter().combinations(2) {
+            let (b1, b2) = (body_pair[0], body_pair[1]);
+
+            force_map
+                .entry(b1.label.clone())
+                .or_insert(vec![])
+                .push(self.calculate(b1, b2));
+
+            force_map
+                .entry(b2.label.clone())
+                .or_insert(vec![])
+                .push(self.calculate(b2, b1));
+        }
+        force_map
+    }
 }
 
-impl<'a> Force<'a> for Gravity {
-    fn calculate(&mut self, on: &'a Body<'a>, from: &'a Body<'a>) -> ForceVector<Vector2> {
-        let body_key = Self::bodies_key(on, from);
-        let mut magnitude: f64 = 0.0;
-        let l_position = on.position();
-        let r_position = from.position();
-        if !self.magnitudes.contains_key(&body_key) {
-            let distance = l_position.distance(&r_position);
-            magnitude = G * on.mass() * from.mass() / distance.powi(2);
-            self.magnitudes.insert(body_key, magnitude);
-        } else {
-            magnitude = match self.magnitudes.get(&body_key) {
-                Some(m) => *m,
-                None => 0.0,
-            };
-        }
-        let force_name = format!("gravity_{}", from.label);
-        let direction = &l_position.direction(&r_position);
+impl Force for Gravity {
+    fn calculate<'a, const N: usize>(&self, on: &'a Body<N>, from: &'a Body<N>) -> ForceVector<N> {
+        let distance = on.position.distance(&from.position);
+        let magnitude = self.g * on.mass * from.mass / distance.powi(2);
+
+        let on_force_name = format!("gravity_{}", from.label);
+        let from_force_name = format!("gravity_{}", on.label);
         ForceVector {
-            label: force_name,
-            v: magnitude * direction,
+            label: on_force_name,
+            v: magnitude * &on.position.direction(&from.position),
         }
     }
 }
+
+pub type ForceMap<const N: usize> = HashMap<String, Vec<ForceVector<N>>>;

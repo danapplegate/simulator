@@ -1,133 +1,116 @@
+use crate::force::{Force, ForceVector, Gravity};
+use crate::math::vector::{Distance, Vector};
+use itertools::Itertools;
+use std::collections::HashMap;
+use std::mem;
+
 pub mod force;
 pub mod math;
 pub mod output_adapter;
 
-use crate::math::vector::{Distance, Vector1, Vector2};
-use std::collections::HashMap;
-
-pub trait Massive {
-    fn mass(&self) -> f64;
-}
-
-pub trait Positioned<'a> {
-    type Output: Distance;
-    fn position(&'a self) -> Self::Output;
-}
-
-pub type PositionVector1 = Vector1;
-pub type PositionVector2 = Vector2;
-pub type ForceVector2 = Vector2;
+pub type PositionVector<const N: usize> = Vector<N>;
 
 #[derive(Debug)]
-pub struct Body<'a> {
-    pub label: &'a str,
-    mass: f64,
-    position: PositionVector2,
-    forces: HashMap<String, ForceVector2>,
+pub struct Body<const N: usize> {
+    pub label: String,
+    pub mass: f64,
+    pub position: PositionVector<N>,
+    pub forces: Vec<ForceVector<N>>,
 }
 
-impl<'a> Massive for Body<'a> {
-    fn mass(&self) -> f64 {
-        self.mass
-    }
-}
-
-impl<'a> Positioned<'a> for Body<'a> {
-    type Output = PositionVector2;
-    fn position(&'a self) -> Self::Output {
-        self.position
-    }
-}
-
-impl<'a> Body<'a> {
-    pub fn new(label: &'a str, mass: f64, position: Option<PositionVector2>) -> Self {
+impl<const N: usize> Body<N> {
+    pub fn new(label: String, mass: f64, position: Option<PositionVector<N>>) -> Self {
         let p = position.unwrap_or_default();
         Self {
             label,
             mass,
             position: p,
-            forces: HashMap::new(),
+            forces: Vec::new(),
         }
     }
-}
 
-type BodyStates<'a> = HashMap<&'a str, Body<'a>>;
-
-#[derive(Debug)]
-pub struct SimulationStep<'a> {
-    t: f64,
-    body_states: BodyStates<'a>,
-}
-
-impl<'a> SimulationStep<'a> {
-    fn body_states(&'a self) -> &'a BodyStates<'a> {
-        &self.body_states
+    fn apply_forces(&mut self, t_step: f64) {
+        let net_force: Vector<N> = self.forces.iter().map(|f| f.v).sum();
+        let acceleration = net_force.magnitude() / self.mass;
+        let acceleration_vector = acceleration * &net_force.unit();
+        let displacement = 0.5 * t_step.powi(2) * &acceleration_vector;
+        self.position = &self.position + &displacement;
     }
 }
 
-pub struct SimulationRun<'a> {
-    t_step: f64,
+pub type BodyMap<'a, const N: usize> = HashMap<String, Body<N>>;
+
+fn body_map_from_bodies<'a, const N: usize>(bodies: &'a Vec<Body<N>>) -> BodyMap<'a, N> {
+    let mut body_map = BodyMap::new();
+    for body in bodies {
+        body_map.insert(
+            String::from(&body.label),
+            Body::new(body.label.clone(), body.mass, Some(body.position)),
+        );
+    }
+    body_map
+}
+
+pub fn compute_next_step<const N: usize>(body_map: BodyMap<'_, N>, t_step: f64) -> BodyMap<'_, N> {
+    let g = Gravity::new(None);
+    let mut new_body_map = BodyMap::new();
+    let mut bodies = Vec::new();
+    for body in body_map.values() {
+        bodies.push(body);
+    }
+    let mut force_map = g.forces_from_bodies(&bodies);
+    for body in bodies {
+        let mut new_body = Body {
+            label: body.label.clone(),
+            forces: force_map.remove(&body.label).unwrap_or_default(),
+            ..*body
+        };
+
+        new_body.apply_forces(t_step);
+        new_body_map.insert(body.label.clone(), new_body);
+    }
+
+    new_body_map
+}
+
+pub struct Simulation<const N: usize> {
+    bodies: Vec<Body<N>>,
+    t_start: f64,
     t_end: f64,
-    t_current: f64,
-    simulation: &'a Simulation<'a>,
+    t_step: f64,
 }
 
-impl<'a> SimulationRun<'a> {
-    fn compute_body_states(&self) -> BodyStates<'a> {
-        let mut body_states = BodyStates::new();
-        for body in self.simulation.bodies.iter() {
-            let body_state = Body {
-                position: &body.position
-                    + &PositionVector2::new(0.0, -0.5_f64 * self.t_current.powi(2) * 9.81_f64),
-                mass: body.mass,
-                label: body.label,
-                forces: HashMap::new(),
-            };
-            body_states.insert(body.label, body_state);
-        }
-        body_states
-    }
-}
-
-impl<'a> Iterator for SimulationRun<'a> {
-    type Item = SimulationStep<'a>;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.t_current += self.t_step;
-        if self.t_current > self.t_end {
-            None
-        } else {
-            Some(SimulationStep {
-                t: self.t_current,
-                body_states: self.compute_body_states(),
-            })
-        }
-    }
-}
-
-#[derive(Debug)]
-pub struct Simulation<'a> {
-    bodies: Vec<Body<'a>>,
-}
-
-impl<'a> Simulation<'a> {
+impl<const N: usize> Simulation<N> {
     pub fn new() -> Self {
-        Self { bodies: Vec::new() }
-    }
-
-    pub fn add_body(&mut self, body: Body<'a>) {
-        self.bodies.push(body);
-    }
-
-    pub fn bodies(&self) -> &Vec<Body<'a>> {
-        &self.bodies
-    }
-
-    pub fn new_run(&self) -> SimulationRun {
-        SimulationRun {
-            t_step: 0.1,
+        Self {
+            bodies: Vec::new(),
+            t_start: 0.0,
             t_end: 10.0,
-            t_current: 0.0,
-            simulation: &self,
+            t_step: 0.1,
         }
+    }
+
+    pub fn t_start(&self) -> f64 {
+        self.t_start
+    }
+
+    pub fn t_end(&self) -> f64 {
+        self.t_end
+    }
+
+    pub fn t_step(&self) -> f64 {
+        self.t_step
+    }
+
+    pub fn add_body(&mut self, body: Body<N>) {
+        self.bodies.push(body)
+    }
+
+    pub fn create_body_map<'a>(&'a self) -> BodyMap<'a, N> {
+        body_map_from_bodies(&self.bodies)
+    }
+
+    pub fn bodies(&self) -> &Vec<Body<N>> {
+        &self.bodies
     }
 }

@@ -1,12 +1,13 @@
-use std::ops::{Add, Div, Mul, Sub};
+use std::iter::Sum;
+use std::ops::{Add, Div, Index, Mul, Sub};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Vector<const N: usize> {
     components: [f64; N],
 }
 
-impl<const N: usize> Vector<N> {
-    pub fn from_array(components: [f64; N]) -> Self {
+impl<const N: usize> From<[f64; N]> for Vector<N> {
+    fn from(components: [f64; N]) -> Self {
         Self { components }
     }
 }
@@ -16,6 +17,22 @@ impl<const N: usize> Default for Vector<N> {
         Self {
             components: [0.0; N],
         }
+    }
+}
+
+impl<const N: usize> Index<usize> for Vector<N> {
+    type Output = f64;
+    fn index(&self, i: usize) -> &Self::Output {
+        &self.components[i]
+    }
+}
+
+impl<const N: usize> Sum for Vector<N> {
+    fn sum<I>(iter: I) -> Self
+    where
+        I: Iterator<Item = Self>,
+    {
+        iter.fold(Vector::default(), |a, v| &a + &v)
     }
 }
 
@@ -250,5 +267,17 @@ mod tests {
         let second = Vector3::new(1.0, -2.0, 4.0);
         assert_eq!(&first - &second, Vector3::new(4.0, 5.0, -6.0));
         assert_eq!(&second - &first, Vector3::new(-4.0, -5.0, 6.0));
+    }
+
+    #[test]
+    fn creating_a_vector_from_an_array_works() {
+        let v = Vector::from([1.0, 2.0, 3.0]);
+        assert_eq!(v, Vector3::new(1.0, 2.0, 3.0));
+    }
+
+    #[test]
+    fn indexing_a_vector_works() {
+        let v = Vector::from([1.0, 2.0, 3.0, 4.0, 5.0]);
+        assert_eq!(v[3], 4.0);
     }
 }
