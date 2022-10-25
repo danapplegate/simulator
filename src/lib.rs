@@ -79,12 +79,12 @@ pub struct Simulation<const N: usize> {
 }
 
 impl<const N: usize> Simulation<N> {
-    pub fn new() -> Self {
+    pub fn new(t_start: Option<f64>, t_end: Option<f64>, t_step: Option<f64>) -> Self {
         Self {
             bodies: Vec::new(),
-            t_start: 0.0,
-            t_end: 10.0,
-            t_step: 0.1,
+            t_start: t_start.unwrap_or(0.0),
+            t_end: t_end.unwrap_or(10.0),
+            t_step: t_step.unwrap_or(0.1),
         }
     }
 

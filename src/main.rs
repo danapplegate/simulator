@@ -43,7 +43,7 @@ fn main() {
     let fv2 = gravity.calculate(&body2, &body1);
     println!("Force on {} by {}: {:?} N", body2.label, body1.label, fv2);
 
-    let mut sim = Simulation::new();
+    let mut sim = Simulation::new(Some(0.0), Some(600.0), Some(0.1));
     sim.add_body(body1);
     sim.add_body(body2);
 
