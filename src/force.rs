@@ -18,8 +18,8 @@ impl<const N: usize> ForceVector<N> {
 }
 
 pub trait Force {
-    // Returns the magnitude of the force calculated between
-    // two objects of type T.
+    /// Returns the vector of the force calculated between
+    /// two objects of type T.
     fn calculate<'a, const N: usize>(&self, on: &'a Body<N>, from: &'a Body<N>) -> ForceVector<N>;
 }
 
