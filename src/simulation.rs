@@ -101,18 +101,6 @@ impl<const N: usize> Simulation<N> {
         }
     }
 
-    pub fn t_start(&self) -> f64 {
-        self.t_start
-    }
-
-    pub fn t_end(&self) -> f64 {
-        self.t_end
-    }
-
-    pub fn t_step(&self) -> f64 {
-        self.t_step
-    }
-
     pub fn add_body(&mut self, body: Body<N>) {
         self.bodies.push(body)
     }
