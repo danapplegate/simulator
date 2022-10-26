@@ -1,5 +1,5 @@
 use crate::math::Distance;
-use crate::{Body, PositionVector};
+use crate::simulation::{Body, PositionVector};
 use itertools::Itertools;
 use std::collections::HashMap;
 

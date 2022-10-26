@@ -1,7 +1,7 @@
 use simulator::force::{Force, Gravity};
 use simulator::math::Distance;
 use simulator::output_adapter::{csv_adapter::CsvAdapter, OutputAdapter};
-use simulator::{Body, PositionVector, Simulation, VelocityVector};
+use simulator::simulation::{Body, PositionVector, Simulation, VelocityVector};
 
 /// Earth mass in kg
 const EARTH_MASS: f64 = 5.9722e+24;

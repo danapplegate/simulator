@@ -1,5 +1,5 @@
 use crate::output_adapter::OutputAdapter;
-use crate::{compute_next_step, Body, BodyMap, Simulation};
+use crate::simulation::{compute_next_step, Body, BodyMap, Simulation};
 
 pub struct CsvAdapter<'a, const N: usize> {
     simulation: &'a Simulation<N>,

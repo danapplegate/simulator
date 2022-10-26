@@ -1,4 +1,4 @@
-use crate::Simulation;
+use crate::simulation::Simulation;
 
 pub trait OutputAdapter<'a, const N: usize> {
     fn new(simulation: &'a Simulation<N>) -> Self;
