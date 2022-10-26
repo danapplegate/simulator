@@ -7,22 +7,31 @@ pub mod math;
 pub mod output_adapter;
 
 pub type PositionVector<const N: usize> = Vector<N>;
+pub type VelocityVector<const N: usize> = Vector<N>;
 
 #[derive(Debug)]
 pub struct Body<const N: usize> {
     pub label: String,
     pub mass: f64,
     pub position: PositionVector<N>,
+    pub velocity: VelocityVector<N>,
     pub forces: Vec<ForceVector<N>>,
 }
 
 impl<const N: usize> Body<N> {
-    pub fn new(label: String, mass: f64, position: Option<PositionVector<N>>) -> Self {
+    pub fn new(
+        label: String,
+        mass: f64,
+        position: Option<PositionVector<N>>,
+        velocity: Option<VelocityVector<N>>,
+    ) -> Self {
         let p = position.unwrap_or_default();
+        let v = velocity.unwrap_or_default();
         Self {
             label,
             mass,
             position: p,
+            velocity: v,
             forces: Vec::new(),
         }
     }
@@ -31,8 +40,10 @@ impl<const N: usize> Body<N> {
         let net_force: Vector<N> = self.forces.iter().map(|f| f.v).sum();
         let acceleration = net_force.magnitude() / self.mass;
         let acceleration_vector = acceleration * &net_force.unit();
-        let displacement = 0.5 * t_step.powi(2) * &acceleration_vector;
+        let displacement =
+            &(t_step * &self.velocity) + &(0.5 * t_step.powi(2) * &acceleration_vector);
         self.position = &self.position + &displacement;
+        self.velocity = &self.velocity + &(t_step * &acceleration_vector);
     }
 }
 
@@ -43,7 +54,12 @@ fn body_map_from_bodies<'a, const N: usize>(bodies: &'a Vec<Body<N>>) -> BodyMap
     for body in bodies {
         body_map.insert(
             String::from(&body.label),
-            Body::new(body.label.clone(), body.mass, Some(body.position)),
+            Body::new(
+                body.label.clone(),
+                body.mass,
+                Some(body.position),
+                Some(body.velocity),
+            ),
         );
     }
     body_map
