@@ -1,6 +1,7 @@
 use crate::force::{ForceVector, Gravity};
 use crate::math::vector::{Distance, Vector};
 use std::collections::HashMap;
+use std::mem;
 
 pub type PositionVector<const N: usize> = Vector<N>;
 pub type VelocityVector<const N: usize> = Vector<N>;
@@ -43,9 +44,9 @@ impl<const N: usize> Body<N> {
     }
 }
 
-pub type BodyMap<'a, const N: usize> = HashMap<String, Body<N>>;
+pub type BodyMap<const N: usize> = HashMap<String, Body<N>>;
 
-fn body_map_from_bodies<'a, const N: usize>(bodies: &'a Vec<Body<N>>) -> BodyMap<'a, N> {
+fn body_map_from_bodies<'a, const N: usize>(bodies: &'a Vec<Body<N>>) -> BodyMap<N> {
     let mut body_map = BodyMap::new();
     for body in bodies {
         body_map.insert(
@@ -61,7 +62,7 @@ fn body_map_from_bodies<'a, const N: usize>(bodies: &'a Vec<Body<N>>) -> BodyMap
     body_map
 }
 
-pub fn compute_next_step<const N: usize>(body_map: BodyMap<'_, N>, t_step: f64) -> BodyMap<'_, N> {
+fn compute_next_step<const N: usize>(body_map: &BodyMap<N>, t_step: f64) -> BodyMap<N> {
     let g = Gravity::new(None);
     let mut new_body_map = BodyMap::new();
     let mut bodies = Vec::new();
@@ -116,11 +117,50 @@ impl<const N: usize> Simulation<N> {
         self.bodies.push(body)
     }
 
-    pub fn create_body_map<'a>(&'a self) -> BodyMap<'a, N> {
+    pub fn create_body_map<'a>(&'a self) -> BodyMap<N> {
         body_map_from_bodies(&self.bodies)
     }
 
     pub fn bodies(&self) -> &Vec<Body<N>> {
         &self.bodies
+    }
+}
+
+pub struct RunStep<const N: usize> {
+    pub t: f64,
+    pub body_map: BodyMap<N>,
+}
+
+pub struct Run<'a, const N: usize> {
+    simulation: &'a Simulation<N>,
+    t_current: f64,
+    body_map: BodyMap<N>,
+}
+
+impl<'a, const N: usize> From<&'a Simulation<N>> for Run<'a, N> {
+    fn from(simulation: &'a Simulation<N>) -> Self {
+        Self {
+            simulation,
+            t_current: simulation.t_start,
+            body_map: simulation.create_body_map(),
+        }
+    }
+}
+
+impl<'a, const N: usize> Iterator for Run<'a, N> {
+    type Item = RunStep<N>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.t_current > self.simulation.t_end {
+            None
+        } else {
+            let next_body_map = compute_next_step(&self.body_map, self.simulation.t_step);
+            let t = self.t_current;
+            self.t_current += self.simulation.t_step;
+            Some(Self::Item {
+                t,
+                body_map: mem::replace(&mut self.body_map, next_body_map),
+            })
+        }
     }
 }

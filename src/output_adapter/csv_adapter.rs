@@ -1,5 +1,5 @@
 use crate::output_adapter::OutputAdapter;
-use crate::simulation::{compute_next_step, Body, BodyMap, Simulation};
+use crate::simulation::{Body, BodyMap, Run, Simulation};
 
 pub struct CsvAdapter<'a, const N: usize> {
     simulation: &'a Simulation<N>,
@@ -12,19 +12,15 @@ impl<'a, const N: usize> OutputAdapter<'a, N> for CsvAdapter<'a, N> {
 
     fn output(&self) {
         println!("{}", self.headers());
-        let mut body_map = self.simulation.create_body_map();
-        let mut t = self.simulation.t_start();
-        let t_step = self.simulation.t_step();
+        let run = Run::from(self.simulation);
         let order = self
             .simulation
             .bodies()
             .iter()
             .map(|b| b.label.clone())
             .collect();
-        while t <= self.simulation.t_end() {
-            println!("{}", self.body_row(t, &body_map, &order));
-            t += t_step;
-            body_map = compute_next_step(body_map, t_step);
+        for step in run {
+            println!("{}", self.body_row(step.t, &step.body_map, &order));
         }
     }
 }
@@ -57,7 +53,7 @@ impl<'a, const N: usize> CsvAdapter<'a, N> {
         headers
     }
 
-    fn body_row(&self, t: f64, body_states: &'a BodyMap<'a, N>, order: &Vec<String>) -> String {
+    fn body_row(&self, t: f64, body_states: &'a BodyMap<N>, order: &Vec<String>) -> String {
         let mut row = format!("{:.1}", t);
         for label in order {
             if let Some(body) = body_states.get(label) {
