@@ -1,17 +1,20 @@
 use crate::force::{ForceVector, Gravity};
 use crate::math::vector::{Distance, Vector};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::mem;
 
 pub type PositionVector<const N: usize> = Vector<N>;
 pub type VelocityVector<const N: usize> = Vector<N>;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Body<const N: usize> {
     pub label: String,
     pub mass: f64,
     pub position: PositionVector<N>,
     pub velocity: VelocityVector<N>,
+
+    #[serde(skip)]
     pub forces: Vec<ForceVector<N>>,
 }
 
@@ -84,6 +87,7 @@ fn compute_next_step<const N: usize>(body_map: &BodyMap<N>, t_step: f64) -> Body
     new_body_map
 }
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Simulation<const N: usize> {
     bodies: Vec<Body<N>>,
     t_start: f64,

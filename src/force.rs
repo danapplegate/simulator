@@ -1,11 +1,12 @@
 use crate::math::Distance;
 use crate::simulation::{Body, PositionVector};
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 const G: f64 = 6.67430e-11;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ForceVector<const N: usize> {
     pub label: String,
     pub v: PositionVector<N>,

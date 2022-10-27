@@ -1,60 +1,46 @@
-use simulator::force::{Force, Gravity};
-use simulator::math::Distance;
-use simulator::output_adapter::{csv_adapter::CsvAdapter, OutputAdapter};
-use simulator::simulation::{Body, PositionVector, Simulation, VelocityVector};
+use clap::{Parser, ValueEnum};
+use simulator::output_adapter::{
+    csv_adapter::CsvAdapter, stdout_adapter::StdoutAdapter, OutputAdapter,
+};
+use simulator::simulation::Simulation;
+use std::path::PathBuf;
+use std::{error::Error, fs};
 
-/// Earth mass in kg
-const EARTH_MASS: f64 = 5.9722e+24;
-/// Earth radius in meters at equator
-const EARTH_RADIUS: f64 = 6.3781370e+6;
-const LEO_RADIUS: f64 = EARTH_RADIUS + 2_000_000.0;
-const LEO_SPEED: f64 = 6_900.0;
+#[derive(Copy, Clone, Debug, ValueEnum)]
+enum OutputType {
+    /// Simulation steps are debug printed to stdout
+    Stdout,
+    /// Comma-separated values, with each step formatted as a row
+    Csv,
+}
 
-/// 2h 8m
-const LEO_PERIOD: f64 = 2.0 * 3600.0 + 8.0 * 60.0;
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    /// Filename containing input simulation data
+    #[arg(short, long)]
+    infile: PathBuf,
 
-/// Earth radius in meters at pole
-// const EARTH_RADIUS: f64 = 6.3567523e+6;
+    /// Format of the simulation's output
+    #[arg(short, long, value_enum, default_value_t = OutputType::Csv)]
+    output: OutputType,
+}
 
-fn main() {
-    let body1 = Body::new(
-        String::from("body1"),
-        1.0,
-        Some(PositionVector::from([0.0, LEO_RADIUS])),
-        Some(VelocityVector::from([LEO_SPEED, 0.0])),
-    );
-    let body2 = Body::new(
-        String::from("Earth"),
-        EARTH_MASS,
-        Some(PositionVector::from([0.0, 0.0])),
-        None,
-    );
-    println!(
-        "Distance between {} and {}: {} m",
-        body1.label,
-        body2.label,
-        body1.position.distance(&body2.position)
-    );
-    println!(
-        "Direction to {} from {}: {:?}",
-        body2.label,
-        body1.label,
-        body1.position.direction(&body2.position)
-    );
-    let gravity = Gravity::new(None);
-    let force_vector = gravity.calculate(&body1, &body2);
-    println!(
-        "Force on {} by {}: {:?} N",
-        body1.label, body2.label, force_vector
-    );
+fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+    let config = Args::parse();
+    let input_yaml = fs::read_to_string(config.infile)?;
+    let sim: Simulation<2> = serde_yaml::from_str(&input_yaml)?;
 
-    let fv2 = gravity.calculate(&body2, &body1);
-    println!("Force on {} by {}: {:?} N", body2.label, body1.label, fv2);
+    match config.output {
+        OutputType::Stdout => {
+            let adapter = StdoutAdapter::new(&sim);
+            adapter.output();
+        }
+        OutputType::Csv => {
+            let adapter = CsvAdapter::new(&sim);
+            adapter.output();
+        }
+    }
 
-    let mut sim = Simulation::new(Some(0.0), Some(LEO_PERIOD), Some(0.1));
-    sim.add_body(body1);
-    sim.add_body(body2);
-
-    let csv = CsvAdapter::new(&sim);
-    csv.output();
+    Ok(())
 }

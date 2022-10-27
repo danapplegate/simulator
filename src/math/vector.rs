@@ -1,8 +1,10 @@
+use serde::{Deserialize, Serialize};
 use std::iter::Sum;
 use std::ops::{Add, Div, Index, Mul, Sub};
 
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Vector<const N: usize> {
+    #[serde(with = "serde_arrays")]
     components: [f64; N],
 }
 
