@@ -3,29 +3,24 @@ use std::iter::Sum;
 use std::ops::{Add, Div, Index, Mul, Sub};
 
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Vector<const N: usize> {
-    #[serde(with = "serde_arrays")]
-    components: [f64; N],
-}
+pub struct Vector<const N: usize>(#[serde(with = "serde_arrays")] [f64; N]);
 
 impl<const N: usize> From<[f64; N]> for Vector<N> {
     fn from(components: [f64; N]) -> Self {
-        Self { components }
+        Self(components)
     }
 }
 
 impl<const N: usize> Default for Vector<N> {
     fn default() -> Self {
-        Self {
-            components: [0.0; N],
-        }
+        Self([0.0; N])
     }
 }
 
 impl<const N: usize> Index<usize> for Vector<N> {
     type Output = f64;
     fn index(&self, i: usize) -> &Self::Output {
-        &self.components[i]
+        &self.0[i]
     }
 }
 
@@ -40,45 +35,43 @@ impl<const N: usize> Sum for Vector<N> {
 
 impl Vector<1> {
     pub fn new(x: f64) -> Self {
-        Self { components: [x] }
+        Self([x])
     }
 
     pub fn x(&self) -> f64 {
-        self.components[0]
+        self.0[0]
     }
 }
 
 impl Vector<2> {
     pub fn new(x: f64, y: f64) -> Self {
-        Self { components: [x, y] }
+        Self([x, y])
     }
 
     pub fn x(&self) -> f64 {
-        self.components[0]
+        self.0[0]
     }
 
     pub fn y(&self) -> f64 {
-        self.components[1]
+        self.0[1]
     }
 }
 
 impl Vector<3> {
     pub fn new(x: f64, y: f64, z: f64) -> Self {
-        Self {
-            components: [x, y, z],
-        }
+        Self([x, y, z])
     }
 
     pub fn x(&self) -> f64 {
-        self.components[0]
+        self.0[0]
     }
 
     pub fn y(&self) -> f64 {
-        self.components[1]
+        self.0[1]
     }
 
     pub fn z(&self) -> f64 {
-        self.components[2]
+        self.0[2]
     }
 }
 
@@ -113,7 +106,7 @@ impl<const N: usize> Distance for Vector<N> {
     fn magnitude(&self) -> f64 {
         let mut sum_of_squares = 0_f64;
         for i in 0..N {
-            sum_of_squares += self.components[i].powi(2);
+            sum_of_squares += self.0[i].powi(2);
         }
         sum_of_squares.sqrt()
     }
@@ -124,9 +117,9 @@ impl<const N: usize> Sub<&Vector<N>> for &Vector<N> {
     fn sub(self, other: &Vector<N>) -> Self::Output {
         let mut components = [0.0; N];
         for i in 0..N {
-            components[i] = self.components[i] - other.components[i];
+            components[i] = self.0[i] - other.0[i];
         }
-        Self::Output { components }
+        Vector::<N>(components)
     }
 }
 
@@ -135,9 +128,9 @@ impl<const N: usize> Div<&Vector<N>> for &Vector<N> {
     fn div(self, other: &Vector<N>) -> Self::Output {
         let mut components = [0.0; N];
         for i in 0..N {
-            components[i] = self.components[i] / other.components[i];
+            components[i] = self.0[i] / other.0[i];
         }
-        Self::Output { components }
+        Vector::<N>(components)
     }
 }
 
@@ -146,9 +139,9 @@ impl<const N: usize> Div<f64> for &Vector<N> {
     fn div(self, other: f64) -> Self::Output {
         let mut components = [0.0; N];
         for i in 0..N {
-            components[i] = self.components[i] / other;
+            components[i] = self.0[i] / other;
         }
-        Self::Output { components }
+        Vector::<N>(components)
     }
 }
 
@@ -157,9 +150,9 @@ impl<const N: usize> Add<&Vector<N>> for &Vector<N> {
     fn add(self, other: &Vector<N>) -> Self::Output {
         let mut components = [0.0; N];
         for i in 0..N {
-            components[i] = self.components[i] + other.components[i];
+            components[i] = self.0[i] + other.0[i];
         }
-        Self::Output { components }
+        Vector::<N>(components)
     }
 }
 
@@ -168,9 +161,9 @@ impl<const N: usize> Mul<&Vector<N>> for f64 {
     fn mul(self, other: &Vector<N>) -> Self::Output {
         let mut components = [0.0; N];
         for i in 0..N {
-            components[i] = self * other.components[i];
+            components[i] = self * other.0[i];
         }
-        Self::Output { components }
+        Vector::<N>(components)
     }
 }
 

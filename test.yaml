@@ -2,23 +2,19 @@ bodies:
   - label: body1
     mass: 1.0
     position:
-      components:
-        - 0.0
-        - 8378137.0
+      - 0.0
+      - 8378137.0
     velocity:
-      components:
-        - 6900.0
-        - 0.0
+      - 6900.0
+      - 0.0
   - label: Earth
     mass: 5.9722e24
     position:
-      components:
-        - 0.0
-        - 0.0
+      - 0.0
+      - 0.0
     velocity:
-      components:
-        - 0.0
-        - 0.0
+      - 0.0
+      - 0.0
 t_start: 0.0
 t_end: 7680.0
 t_step: 0.1
