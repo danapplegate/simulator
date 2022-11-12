@@ -1,4 +1,6 @@
 use clap::{Parser, ValueEnum};
+use miniquad;
+use simulator::graphics::{self, Stage};
 use simulator::output_adapter::{
     csv_adapter::CsvAdapter, stdout_adapter::StdoutAdapter, OutputAdapter,
 };
@@ -12,6 +14,8 @@ enum OutputType {
     Stdout,
     /// Comma-separated values, with each step formatted as a row
     Csv,
+    /// Render the simulation graphically in a window
+    Graphical,
 }
 
 #[derive(Parser, Debug)]
@@ -39,6 +43,10 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         OutputType::Csv => {
             let adapter = CsvAdapter::new(&sim);
             adapter.output();
+        }
+        OutputType::Graphical => {
+            let graphics_conf = graphics::new_conf();
+            miniquad::start(graphics_conf, |ctx| Box::new(Stage::new(ctx)))
         }
     }
 
