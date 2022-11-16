@@ -46,7 +46,7 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         }
         OutputType::Graphical => {
             let graphics_conf = graphics::new_conf();
-            miniquad::start(graphics_conf, |ctx| Box::new(Stage::new(ctx)))
+            miniquad::start(graphics_conf, move |ctx| Box::new(Stage::new(ctx, sim)));
         }
     }
 

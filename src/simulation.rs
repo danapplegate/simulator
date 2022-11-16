@@ -156,3 +156,40 @@ impl<'a, const N: usize> Iterator for Run<'a, N> {
         }
     }
 }
+
+/// Version of a simulation run that takes ownership of the simulation
+pub struct OwningRun<const N: usize> {
+    simulation: Simulation<N>,
+    t_current: f64,
+    body_map: BodyMap<N>,
+}
+
+impl<const N: usize> From<Simulation<N>> for OwningRun<N> {
+    fn from(simulation: Simulation<N>) -> Self {
+        let t_current = simulation.t_start;
+        let body_map = simulation.create_body_map();
+        Self {
+            simulation,
+            t_current,
+            body_map,
+        }
+    }
+}
+
+impl<const N: usize> Iterator for OwningRun<N> {
+    type Item = RunStep<N>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.t_current > self.simulation.t_end {
+            None
+        } else {
+            let next_body_map = compute_next_step(&self.body_map, self.simulation.t_step);
+            let t = self.t_current;
+            self.t_current += self.simulation.t_step;
+            Some(Self::Item {
+                t,
+                body_map: mem::replace(&mut self.body_map, next_body_map),
+            })
+        }
+    }
+}
