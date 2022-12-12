@@ -21,6 +21,7 @@ struct Vertex {
 
 pub fn new_conf() -> Conf {
     Conf {
+        high_dpi: true,
         ..Default::default()
     }
 }
