@@ -8,6 +8,7 @@ use std::f32::consts::PI;
 
 use crate::simulation::{OwningRun, Simulation};
 
+#[derive(Default, Clone, Copy)]
 #[repr(C)]
 struct Vec2 {
     x: f32,
@@ -29,34 +30,34 @@ pub fn new_conf() -> Conf {
 pub struct Stage<const N: usize> {
     pipeline: Pipeline,
     bindings: Bindings,
+    scale: f32,
     run: OwningRun<N>,
     inst_pos: Vec<Vec2>,
+    inst_scale: Vec<Vec2>,
 }
+
+const BODY_WIDTHS: [f32; 2] = [5_000_000.0, 100_000.0];
 
 impl<const N: usize> EventHandler for Stage<N> {
     fn update(&mut self, _ctx: &mut Context) {
         let step = self.run.next().unwrap();
+        let (width, height) = _ctx.display().screen_size();
+        let aspect = width / height;
 
-        if self.inst_pos.is_empty() {
-            for (_, body) in step.body_map {
-                self.inst_pos.push(Vec2 {
-                    x: body.position[0] as f32 / 10_000_000.0,
-                    y: body.position[1] as f32 / 10_000_000.0,
-                });
-            }
-        } else {
-            for (i, (_, body)) in step.body_map.iter().enumerate() {
-                self.inst_pos[i].x = body.position[0] as f32 / 10_000_000.0;
-                self.inst_pos[i].y = body.position[1] as f32 / 10_000_000.0;
-            }
+        for (i, (_, body)) in step.body_map.iter().enumerate() {
+            self.inst_pos[i].x = body.position[0] as f32 / (aspect * self.scale);
+            self.inst_pos[i].y = body.position[1] as f32 / (self.scale);
+            self.inst_scale[i].x = BODY_WIDTHS[i] / (aspect * self.scale);
+            self.inst_scale[i].y = BODY_WIDTHS[i] / (self.scale);
         }
     }
 
     fn draw(&mut self, ctx: &mut Context) {
         self.bindings.vertex_buffers[1].update(ctx, &self.inst_pos[..]);
+        self.bindings.vertex_buffers[2].update(ctx, &self.inst_scale[..]);
 
         ctx.begin_default_pass(PassAction::Clear {
-            color: Some((0.7, 0., 1., 1.)),
+            color: Some((0., 0., 0., 1.)),
             depth: None,
             stencil: None,
         });
@@ -64,7 +65,7 @@ impl<const N: usize> EventHandler for Stage<N> {
         ctx.apply_pipeline(&self.pipeline);
         ctx.apply_bindings(&self.bindings);
 
-        ctx.draw(0, 60, self.inst_pos.len() as i32);
+        ctx.draw(0, 120, self.inst_pos.len() as i32);
 
         ctx.end_render_pass();
         ctx.commit_frame();
@@ -76,10 +77,10 @@ const VERTEX_SHADER: &str = r#"
 
     attribute vec2 pos;
     attribute vec2 inst_pos;
-    attribute float scale;
+    attribute vec2 inst_scale;
 
     void main() {
-        gl_Position = vec4(scale * pos + inst_pos, 0.0, 1.0);
+        gl_Position = vec4(inst_scale.x * pos.x + inst_pos.x, inst_scale.y * pos.y + inst_pos.y, 0.0, 1.0);
     }
 "#;
 
@@ -118,7 +119,7 @@ impl<const N: usize> Stage<N> {
     const MAX_BODIES: usize = 256;
 
     pub fn new(context: &mut Context, simulation: Simulation<N>) -> Self {
-        let (vertices, indices) = generate_circle(20);
+        let (vertices, indices) = generate_circle(40);
         let geometry_vertex_buffer =
             Buffer::immutable(context, BufferType::VertexBuffer, &vertices);
         let index_buffer = Buffer::immutable(context, BufferType::IndexBuffer, &indices);
@@ -129,8 +130,11 @@ impl<const N: usize> Stage<N> {
             Self::MAX_BODIES * mem::size_of::<Vec2>(),
         );
 
-        let scale_vertex_buffer =
-            Buffer::immutable(context, BufferType::VertexBuffer, &[0.5_f32, 0.05_f32]);
+        let scale_vertex_buffer = Buffer::stream(
+            context,
+            BufferType::VertexBuffer,
+            Self::MAX_BODIES * mem::size_of::<Vec2>(),
+        );
 
         let bindings = Bindings {
             vertex_buffers: vec![
@@ -163,17 +167,24 @@ impl<const N: usize> Stage<N> {
             &[
                 VertexAttribute::with_buffer("pos", VertexFormat::Float2, 0),
                 VertexAttribute::with_buffer("inst_pos", VertexFormat::Float2, 1),
-                VertexAttribute::with_buffer("scale", VertexFormat::Float1, 2),
+                VertexAttribute::with_buffer("inst_scale", VertexFormat::Float2, 2),
             ],
             shader,
         );
+
+        let mut inst_pos = Vec::with_capacity(Self::MAX_BODIES);
+        inst_pos.resize(simulation.bodies().len(), Vec2::default());
+        let mut inst_scale = Vec::with_capacity(Self::MAX_BODIES);
+        inst_scale.resize(simulation.bodies().len(), Vec2::default());
 
         let run = OwningRun::from(simulation);
         Self {
             pipeline,
             bindings,
+            scale: 10_000_000.0,
             run,
-            inst_pos: Vec::with_capacity(Self::MAX_BODIES),
+            inst_pos,
+            inst_scale,
         }
     }
 }
