@@ -91,7 +91,7 @@ fn compute_next_step<const N: usize>(body_map: &BodyMap<N>, t_step: f64) -> Body
 pub struct Simulation<const N: usize> {
     bodies: Vec<Body<N>>,
     t_start: f64,
-    t_end: f64,
+    t_end: Option<f64>,
     t_step: f64,
 }
 
@@ -100,7 +100,7 @@ impl<const N: usize> Simulation<N> {
         Self {
             bodies: Vec::new(),
             t_start: t_start.unwrap_or(0.0),
-            t_end: t_end.unwrap_or(10.0),
+            t_end: t_end,
             t_step: t_step.unwrap_or(0.1),
         }
     }
@@ -143,17 +143,18 @@ impl<'a, const N: usize> Iterator for Run<'a, N> {
     type Item = RunStep<N>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.t_current > self.simulation.t_end {
-            None
-        } else {
-            let next_body_map = compute_next_step(&self.body_map, self.simulation.t_step);
-            let t = self.t_current;
-            self.t_current += self.simulation.t_step;
-            Some(Self::Item {
-                t,
-                body_map: mem::replace(&mut self.body_map, next_body_map),
-            })
+        if let Some(t_end) = self.simulation.t_end {
+            if self.t_current > t_end {
+                return None;
+            }
         }
+        let next_body_map = compute_next_step(&self.body_map, self.simulation.t_step);
+        let t = self.t_current;
+        self.t_current += self.simulation.t_step;
+        Some(Self::Item {
+            t,
+            body_map: mem::replace(&mut self.body_map, next_body_map),
+        })
     }
 }
 
@@ -180,16 +181,17 @@ impl<const N: usize> Iterator for OwningRun<N> {
     type Item = RunStep<N>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.t_current > self.simulation.t_end {
-            None
-        } else {
-            let next_body_map = compute_next_step(&self.body_map, self.simulation.t_step);
-            let t = self.t_current;
-            self.t_current += self.simulation.t_step;
-            Some(Self::Item {
-                t,
-                body_map: mem::replace(&mut self.body_map, next_body_map),
-            })
+        if let Some(t_end) = self.simulation.t_end {
+            if self.t_current > t_end {
+                return None;
+            }
         }
+        let next_body_map = compute_next_step(&self.body_map, self.simulation.t_step);
+        let t = self.t_current;
+        self.t_current += self.simulation.t_step;
+        Some(Self::Item {
+            t,
+            body_map: mem::replace(&mut self.body_map, next_body_map),
+        })
     }
 }

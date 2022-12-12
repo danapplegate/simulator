@@ -16,5 +16,4 @@ bodies:
       - 0.0
       - 0.0
 t_start: 0.0
-t_end: 7680.0
 t_step: 5.0
