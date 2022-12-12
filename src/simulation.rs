@@ -1,7 +1,7 @@
 use crate::force::{ForceVector, Gravity};
 use crate::math::vector::{Distance, Vector};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use std::mem;
 
 pub type PositionVector<const N: usize> = Vector<N>;
@@ -47,7 +47,7 @@ impl<const N: usize> Body<N> {
     }
 }
 
-pub type BodyMap<const N: usize> = HashMap<String, Body<N>>;
+pub type BodyMap<const N: usize> = BTreeMap<String, Body<N>>;
 
 fn body_map_from_bodies<'a, const N: usize>(bodies: &'a Vec<Body<N>>) -> BodyMap<N> {
     let mut body_map = BodyMap::new();
