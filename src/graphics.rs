@@ -36,7 +36,7 @@ pub struct Stage<const N: usize> {
     inst_scale: Vec<Vec2>,
 }
 
-const BODY_WIDTHS: [f32; 2] = [5_000_000.0, 100_000.0];
+const BODY_WIDTHS: [f32; 2] = [6_378_000.0, 100_000.0];
 
 impl<const N: usize> EventHandler for Stage<N> {
     fn update(&mut self, _ctx: &mut Context) {
