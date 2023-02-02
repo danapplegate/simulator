@@ -72,25 +72,8 @@ impl<const N: usize> EventHandler for Stage<N> {
     }
 }
 
-const VERTEX_SHADER: &str = r#"
-    #version 100
-
-    attribute vec2 pos;
-    attribute vec2 inst_pos;
-    attribute vec2 inst_scale;
-
-    void main() {
-        gl_Position = vec4(inst_scale.x * pos.x + inst_pos.x, inst_scale.y * pos.y + inst_pos.y, 0.0, 1.0);
-    }
-"#;
-
-const FRAGMENT_SHADER: &str = r#"
-    #version 100
-
-    void main() {
-        gl_FragColor = vec4(0.0, 0.7, 0.7, 1.0);
-    }
-"#;
+const VERTEX_SHADER: &str = include_str!("shaders/geo.vert");
+const FRAGMENT_SHADER: &str = include_str!("shaders/geo.frag");
 
 fn generate_circle(segments: u32) -> (Vec<Vertex>, Vec<u32>) {
     let mut vertices = vec![];
