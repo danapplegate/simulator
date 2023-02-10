@@ -33,7 +33,7 @@ struct Args {
 fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
     let config = Args::parse();
     let input_yaml = fs::read_to_string(config.infile)?;
-    let sim: Simulation<2> = serde_yaml::from_str(&input_yaml)?;
+    let sim: Simulation<3> = serde_yaml::from_str(&input_yaml)?;
 
     match config.output {
         OutputType::Stdout => {
