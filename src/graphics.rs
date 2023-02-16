@@ -1,9 +1,10 @@
 use std::mem;
 
+use glam::{vec3, Mat4};
 use miniquad::{
     conf::Conf, Bindings, Buffer, BufferLayout, BufferType, Context, CullFace, EventHandler,
-    PassAction, Pipeline, Shader, ShaderMeta, UniformBlockLayout, VertexAttribute, VertexFormat,
-    VertexStep,
+    PassAction, Pipeline, Shader, ShaderMeta, UniformBlockLayout, UniformDesc, VertexAttribute,
+    VertexFormat, VertexStep,
 };
 use std::f32::consts::PI;
 
@@ -39,10 +40,16 @@ pub fn new_conf() -> Conf {
 pub struct Stage<const N: usize> {
     pipeline: Pipeline,
     bindings: Bindings,
+    num_indices: usize,
     scale: f32,
     run: OwningRun<N>,
     inst_pos: Vec<Vec3>,
     inst_scale: Vec<Vec3>,
+    ry: f32,
+}
+
+struct Uniforms {
+    mvp: Mat4,
 }
 
 const BODY_WIDTHS: [f32; 2] = [6_378_000.0, 100_000.0];
@@ -67,6 +74,20 @@ impl<const N: usize> EventHandler for Stage<N> {
         self.bindings.vertex_buffers[1].update(ctx, &self.inst_pos[..]);
         self.bindings.vertex_buffers[2].update(ctx, &self.inst_scale[..]);
 
+        // model-view-projection matrix
+        let (width, height) = ctx.screen_size();
+
+        let proj = Mat4::perspective_rh_gl(60.0f32.to_radians(), width / height, 0.01, 50.0);
+        let view = Mat4::look_at_rh(
+            vec3(0.0, 1.5, 3.0),
+            vec3(0.0, 0.0, 0.0),
+            vec3(0.0, 1.0, 0.0),
+        );
+        let view_proj = proj * view;
+
+        self.ry += 0.01;
+        let mvp = view_proj * Mat4::from_rotation_y(self.ry);
+
         ctx.begin_default_pass(PassAction::Clear {
             color: Some((0., 0., 0., 1.)),
             depth: None,
@@ -75,8 +96,9 @@ impl<const N: usize> EventHandler for Stage<N> {
 
         ctx.apply_pipeline(&self.pipeline);
         ctx.apply_bindings(&self.bindings);
+        ctx.apply_uniforms(&Uniforms { mvp });
 
-        ctx.draw(0, 24, self.inst_pos.len() as i32);
+        ctx.draw(0, self.num_indices as i32, self.inst_pos.len() as i32);
 
         ctx.end_render_pass();
         ctx.commit_frame();
@@ -158,13 +180,13 @@ fn generate_uv_sphere(n_stacks: u32, n_sectors: u32) -> (Vec<Vertex<Vec3>>, Vec<
 
     // Each sector of each stack will require two triangles to cover their quadrangle
     let vertices_per_stack = n_sectors + 1;
-    for stack_step in 2..(n_stacks - 1) {
+    for stack_step in 1..(n_stacks - 1) {
         let num_stacks_below = stack_step - 1;
         let vertex_offset = num_stacks_below * vertices_per_stack;
-        for sector_step in 0..(n_sectors - 1) {
+        for sector_step in 0..n_sectors {
             let bottom_left_point = 2 + vertex_offset + sector_step;
             let bottom_right_point = bottom_left_point + 1;
-            let top_left_point = bottom_left_point + vertices_per_stack + sector_step;
+            let top_left_point = bottom_left_point + vertices_per_stack;
             let top_right_point = top_left_point + 1;
             indices.extend_from_slice(&[top_left_point, bottom_left_point, top_right_point]);
             indices.extend_from_slice(&[top_right_point, bottom_left_point, bottom_right_point]);
@@ -178,7 +200,7 @@ impl<const N: usize> Stage<N> {
     const MAX_BODIES: usize = 256;
 
     pub fn new(context: &mut Context, simulation: Simulation<N>) -> Self {
-        let (vertices, indices) = generate_uv_sphere(3, 4);
+        let (vertices, indices) = generate_uv_sphere(10, 12);
         let geometry_vertex_buffer =
             Buffer::immutable(context, BufferType::VertexBuffer, &vertices);
         let index_buffer = Buffer::immutable(context, BufferType::IndexBuffer, &indices);
@@ -207,7 +229,9 @@ impl<const N: usize> Stage<N> {
 
         let meta = ShaderMeta {
             images: vec![],
-            uniforms: UniformBlockLayout { uniforms: vec![] },
+            uniforms: UniformBlockLayout {
+                uniforms: vec![UniformDesc::new("mvp", miniquad::UniformType::Mat4)],
+            },
         };
         let shader = Shader::new(context, VERTEX_SHADER, FRAGMENT_SHADER, meta).unwrap();
         let pipeline = Pipeline::new(
@@ -243,9 +267,11 @@ impl<const N: usize> Stage<N> {
             pipeline,
             bindings,
             scale: 10_000_000.0,
+            num_indices: indices.len(),
             run,
             inst_pos,
             inst_scale,
+            ry: 0.0,
         }
     }
 }
