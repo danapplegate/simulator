@@ -36,6 +36,7 @@ pub struct Stage<const N: usize> {
     ry: f32,
 }
 
+#[allow(dead_code)]
 struct Uniforms {
     mvp: Mat4,
 }
@@ -94,6 +95,7 @@ impl<const N: usize> EventHandler for Stage<N> {
 const VERTEX_SHADER: &str = include_str!("shaders/geo.vert");
 const FRAGMENT_SHADER: &str = include_str!("shaders/geo.frag");
 
+#[allow(dead_code)]
 fn generate_circle(segments: u32) -> (Vec<Vertex<Vector2>>, Vec<u32>) {
     let mut vertices = vec![];
     let mut indices = vec![];
