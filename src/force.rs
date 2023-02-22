@@ -4,7 +4,7 @@ use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-const G: f64 = 6.67430e-11;
+const G: f32 = 6.67430e-11;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ForceVector<const N: usize> {
@@ -13,7 +13,7 @@ pub struct ForceVector<const N: usize> {
 }
 
 impl<const N: usize> ForceVector<N> {
-    pub fn magnitude(&self) -> f64 {
+    pub fn magnitude(&self) -> f32 {
         self.v.magnitude()
     }
 }
@@ -26,11 +26,11 @@ pub trait Force {
 
 #[derive(Debug)]
 pub struct Gravity {
-    g: f64,
+    g: f32,
 }
 
 impl Gravity {
-    pub fn new(g: Option<f64>) -> Self {
+    pub fn new(g: Option<f32>) -> Self {
         Gravity { g: g.unwrap_or(G) }
     }
 

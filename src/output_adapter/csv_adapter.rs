@@ -53,7 +53,7 @@ impl<'a, const N: usize> CsvAdapter<'a, N> {
         headers
     }
 
-    fn body_row(&self, t: f64, body_states: &'a BodyMap<N>, order: &Vec<String>) -> String {
+    fn body_row(&self, t: f32, body_states: &'a BodyMap<N>, order: &Vec<String>) -> String {
         let mut row = format!("{:.1}", t);
         for label in order {
             if let Some(body) = body_states.get(label) {

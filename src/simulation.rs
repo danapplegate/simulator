@@ -10,7 +10,7 @@ pub type VelocityVector<const N: usize> = Vector<N>;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Body<const N: usize> {
     pub label: String,
-    pub mass: f64,
+    pub mass: f32,
     pub position: PositionVector<N>,
     pub velocity: VelocityVector<N>,
 
@@ -21,7 +21,7 @@ pub struct Body<const N: usize> {
 impl<const N: usize> Body<N> {
     pub fn new(
         label: String,
-        mass: f64,
+        mass: f32,
         position: Option<PositionVector<N>>,
         velocity: Option<VelocityVector<N>>,
     ) -> Self {
@@ -36,7 +36,7 @@ impl<const N: usize> Body<N> {
         }
     }
 
-    fn apply_forces(&mut self, t_step: f64) {
+    fn apply_forces(&mut self, t_step: f32) {
         let net_force: Vector<N> = self.forces.iter().map(|f| f.v).sum();
         let acceleration = net_force.magnitude() / self.mass;
         let acceleration_vector = acceleration * &net_force.unit();
@@ -65,7 +65,7 @@ fn body_map_from_bodies<'a, const N: usize>(bodies: &'a Vec<Body<N>>) -> BodyMap
     body_map
 }
 
-fn compute_next_step<const N: usize>(body_map: &BodyMap<N>, t_step: f64) -> BodyMap<N> {
+fn compute_next_step<const N: usize>(body_map: &BodyMap<N>, t_step: f32) -> BodyMap<N> {
     let g = Gravity::new(None);
     let mut new_body_map = BodyMap::new();
     let mut bodies = Vec::new();
@@ -90,13 +90,13 @@ fn compute_next_step<const N: usize>(body_map: &BodyMap<N>, t_step: f64) -> Body
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Simulation<const N: usize> {
     bodies: Vec<Body<N>>,
-    t_start: f64,
-    t_end: Option<f64>,
-    t_step: f64,
+    t_start: f32,
+    t_end: Option<f32>,
+    t_step: f32,
 }
 
 impl<const N: usize> Simulation<N> {
-    pub fn new(t_start: Option<f64>, t_end: Option<f64>, t_step: Option<f64>) -> Self {
+    pub fn new(t_start: Option<f32>, t_end: Option<f32>, t_step: Option<f32>) -> Self {
         Self {
             bodies: Vec::new(),
             t_start: t_start.unwrap_or(0.0),
@@ -119,13 +119,13 @@ impl<const N: usize> Simulation<N> {
 }
 
 pub struct RunStep<const N: usize> {
-    pub t: f64,
+    pub t: f32,
     pub body_map: BodyMap<N>,
 }
 
 pub struct Run<'a, const N: usize> {
     simulation: &'a Simulation<N>,
-    t_current: f64,
+    t_current: f32,
     body_map: BodyMap<N>,
 }
 
@@ -161,7 +161,7 @@ impl<'a, const N: usize> Iterator for Run<'a, N> {
 /// Version of a simulation run that takes ownership of the simulation
 pub struct OwningRun<const N: usize> {
     simulation: Simulation<N>,
-    t_current: f64,
+    t_current: f32,
     body_map: BodyMap<N>,
 }
 

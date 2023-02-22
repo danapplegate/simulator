@@ -3,10 +3,10 @@ use std::iter::Sum;
 use std::ops::{Add, Div, Index, Mul, Sub};
 
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Vector<const N: usize>(#[serde(with = "serde_arrays")] [f64; N]);
+pub struct Vector<const N: usize>(#[serde(with = "serde_arrays")] [f32; N]);
 
-impl<const N: usize> From<[f64; N]> for Vector<N> {
-    fn from(components: [f64; N]) -> Self {
+impl<const N: usize> From<[f32; N]> for Vector<N> {
+    fn from(components: [f32; N]) -> Self {
         Self(components)
     }
 }
@@ -18,7 +18,7 @@ impl<const N: usize> Default for Vector<N> {
 }
 
 impl<const N: usize> Index<usize> for Vector<N> {
-    type Output = f64;
+    type Output = f32;
     fn index(&self, i: usize) -> &Self::Output {
         &self.0[i]
     }
@@ -34,43 +34,43 @@ impl<const N: usize> Sum for Vector<N> {
 }
 
 impl Vector<1> {
-    pub fn new(x: f64) -> Self {
+    pub fn new(x: f32) -> Self {
         Self([x])
     }
 
-    pub fn x(&self) -> f64 {
+    pub fn x(&self) -> f32 {
         self.0[0]
     }
 }
 
 impl Vector<2> {
-    pub fn new(x: f64, y: f64) -> Self {
+    pub fn new(x: f32, y: f32) -> Self {
         Self([x, y])
     }
 
-    pub fn x(&self) -> f64 {
+    pub fn x(&self) -> f32 {
         self.0[0]
     }
 
-    pub fn y(&self) -> f64 {
+    pub fn y(&self) -> f32 {
         self.0[1]
     }
 }
 
 impl Vector<3> {
-    pub fn new(x: f64, y: f64, z: f64) -> Self {
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self([x, y, z])
     }
 
-    pub fn x(&self) -> f64 {
+    pub fn x(&self) -> f32 {
         self.0[0]
     }
 
-    pub fn y(&self) -> f64 {
+    pub fn y(&self) -> f32 {
         self.0[1]
     }
 
-    pub fn z(&self) -> f64 {
+    pub fn z(&self) -> f32 {
         self.0[2]
     }
 }
@@ -82,16 +82,16 @@ pub type Vector3 = Vector<3>;
 pub trait Distance {
     type Output: Distance;
 
-    fn distance(&self, other: &Self) -> f64;
+    fn distance(&self, other: &Self) -> f32;
     fn direction(&self, to: &Self) -> Self::Output;
     fn unit(&self) -> Self::Output;
-    fn magnitude(&self) -> f64;
+    fn magnitude(&self) -> f32;
 }
 
 impl<const N: usize> Distance for Vector<N> {
     type Output = Vector<N>;
 
-    fn distance(&self, other: &Self) -> f64 {
+    fn distance(&self, other: &Self) -> f32 {
         (self - other).magnitude()
     }
 
@@ -103,8 +103,8 @@ impl<const N: usize> Distance for Vector<N> {
         self / self.magnitude()
     }
 
-    fn magnitude(&self) -> f64 {
-        let mut sum_of_squares = 0_f64;
+    fn magnitude(&self) -> f32 {
+        let mut sum_of_squares = 0_f32;
         for i in 0..N {
             sum_of_squares += self.0[i].powi(2);
         }
@@ -134,9 +134,9 @@ impl<const N: usize> Div<&Vector<N>> for &Vector<N> {
     }
 }
 
-impl<const N: usize> Div<f64> for &Vector<N> {
+impl<const N: usize> Div<f32> for &Vector<N> {
     type Output = Vector<N>;
-    fn div(self, other: f64) -> Self::Output {
+    fn div(self, other: f32) -> Self::Output {
         let mut components = [0.0; N];
         for i in 0..N {
             components[i] = self.0[i] / other;
@@ -156,7 +156,7 @@ impl<const N: usize> Add<&Vector<N>> for &Vector<N> {
     }
 }
 
-impl<const N: usize> Mul<&Vector<N>> for f64 {
+impl<const N: usize> Mul<&Vector<N>> for f32 {
     type Output = Vector<N>;
     fn mul(self, other: &Vector<N>) -> Self::Output {
         let mut components = [0.0; N];
