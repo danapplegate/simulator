@@ -39,7 +39,7 @@ impl<const N: usize> Body<N> {
     fn apply_forces(&mut self, t_step: f32) {
         let net_force: Vector<N> = self.forces.iter().map(|f| f.v).sum();
         let acceleration = net_force.magnitude() / self.mass;
-        let acceleration_vector = acceleration * &net_force.unit();
+        let acceleration_vector = acceleration * &net_force.normalize();
         let displacement =
             &(t_step * &self.velocity) + &(0.5 * t_step.powi(2) * &acceleration_vector);
         self.position = &self.position + &displacement;

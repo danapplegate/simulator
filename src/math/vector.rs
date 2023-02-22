@@ -90,7 +90,7 @@ pub trait Distance {
 
     fn distance(&self, other: &Self) -> f32;
     fn direction(&self, to: &Self) -> Self::Output;
-    fn unit(&self) -> Self::Output;
+    fn normalize(&self) -> Self::Output;
     fn magnitude(&self) -> f32;
 }
 
@@ -102,10 +102,10 @@ impl<const N: usize> Distance for Vector<N> {
     }
 
     fn direction(&self, to: &Self) -> Self::Output {
-        (to - self).unit()
+        (to - self).normalize()
     }
 
-    fn unit(&self) -> Self::Output {
+    fn normalize(&self) -> Self::Output {
         self / self.magnitude()
     }
 
@@ -243,9 +243,9 @@ mod tests {
     }
 
     #[test]
-    fn unit_of_a_vector2_instance_works() {
+    fn normalization_of_a_vector2_instance_works() {
         let first = Vector2::new(3.0, 4.0);
-        assert_eq!(first.unit(), Vector2::new(0.6, 0.8));
+        assert_eq!(first.normalize(), Vector2::new(0.6, 0.8));
     }
 
     #[test]
