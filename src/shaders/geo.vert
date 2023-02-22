@@ -1,8 +1,8 @@
-#version 100
+#version 330 core
 
-attribute vec3 pos;
-attribute vec3 inst_pos;
-attribute vec3 inst_scale;
+layout(location = 0) in vec3 pos;
+layout(location = 1) in vec3 inst_pos;
+layout(location = 2) in vec3 inst_scale;
 
 uniform mat4 mvp;
 
