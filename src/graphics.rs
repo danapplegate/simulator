@@ -45,14 +45,12 @@ const BODY_WIDTHS: [f32; 2] = [6_378_000.0, 100_000.0];
 impl<const N: usize> EventHandler for Stage<N> {
     fn update(&mut self, _ctx: &mut Context) {
         let step = self.run.next().unwrap();
-        let (width, height) = _ctx.display().screen_size();
-        let aspect = width / height;
 
         for (i, (_, body)) in step.body_map.iter().enumerate() {
-            self.inst_pos[i][0] = body.position[0] / (aspect * self.scale);
+            self.inst_pos[i][0] = body.position[0] / (self.scale);
             self.inst_pos[i][1] = body.position[1] / (self.scale);
             self.inst_pos[i][2] = body.position[2] / (self.scale);
-            self.inst_scale[i][0] = BODY_WIDTHS[i] / (aspect * self.scale);
+            self.inst_scale[i][0] = BODY_WIDTHS[i] / (self.scale);
             self.inst_scale[i][1] = BODY_WIDTHS[i] / (self.scale);
             self.inst_scale[i][2] = BODY_WIDTHS[i] / (self.scale);
         }
