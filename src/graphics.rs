@@ -8,22 +8,10 @@ use miniquad::{
 };
 use std::f32::consts::PI;
 
-use crate::simulation::{OwningRun, Simulation};
-
-#[derive(Default, Clone, Copy)]
-#[repr(C)]
-struct Vec2 {
-    x: f32,
-    y: f32,
-}
-
-#[derive(Default, Clone, Copy)]
-#[repr(C)]
-struct Vec3 {
-    x: f32,
-    y: f32,
-    z: f32,
-}
+use crate::{
+    math::{Vector2, Vector3},
+    simulation::{OwningRun, Simulation},
+};
 
 #[repr(C)]
 struct Vertex<T> {
@@ -43,8 +31,8 @@ pub struct Stage<const N: usize> {
     num_indices: usize,
     scale: f32,
     run: OwningRun<N>,
-    inst_pos: Vec<Vec3>,
-    inst_scale: Vec<Vec3>,
+    inst_pos: Vec<Vector3>,
+    inst_scale: Vec<Vector3>,
     ry: f32,
 }
 
@@ -61,12 +49,12 @@ impl<const N: usize> EventHandler for Stage<N> {
         let aspect = width / height;
 
         for (i, (_, body)) in step.body_map.iter().enumerate() {
-            self.inst_pos[i].x = body.position[0] as f32 / (aspect * self.scale);
-            self.inst_pos[i].y = body.position[1] as f32 / (self.scale);
-            self.inst_pos[i].z = body.position[2] as f32 / (self.scale);
-            self.inst_scale[i].x = BODY_WIDTHS[i] / (aspect * self.scale);
-            self.inst_scale[i].y = BODY_WIDTHS[i] / (self.scale);
-            self.inst_scale[i].z = BODY_WIDTHS[i] / (self.scale);
+            self.inst_pos[i][0] = body.position[0] / (aspect * self.scale);
+            self.inst_pos[i][1] = body.position[1] / (self.scale);
+            self.inst_pos[i][2] = body.position[2] / (self.scale);
+            self.inst_scale[i][0] = BODY_WIDTHS[i] / (aspect * self.scale);
+            self.inst_scale[i][1] = BODY_WIDTHS[i] / (self.scale);
+            self.inst_scale[i][2] = BODY_WIDTHS[i] / (self.scale);
         }
     }
 
@@ -108,22 +96,19 @@ impl<const N: usize> EventHandler for Stage<N> {
 const VERTEX_SHADER: &str = include_str!("shaders/geo.vert");
 const FRAGMENT_SHADER: &str = include_str!("shaders/geo.frag");
 
-fn generate_circle(segments: u32) -> (Vec<Vertex<Vec2>>, Vec<u32>) {
+fn generate_circle(segments: u32) -> (Vec<Vertex<Vector2>>, Vec<u32>) {
     let mut vertices = vec![];
     let mut indices = vec![];
     vertices.push(Vertex {
-        pos: Vec2 { x: 0.0, y: 0.0 },
+        pos: Vector2::from([0.0, 0.0]),
     });
     vertices.push(Vertex {
-        pos: Vec2 { x: 1.0, y: 0.0 },
+        pos: Vector2::from([1.0, 0.0]),
     });
     for i in 1..segments {
         let radians = i as f32 * 2.0 * PI / segments as f32;
         vertices.push(Vertex {
-            pos: Vec2 {
-                x: radians.cos(),
-                y: radians.sin(),
-            },
+            pos: Vector2::from([radians.cos(), radians.sin()]),
         });
         indices.extend(vec![0, i + 1, i]);
     }
@@ -131,24 +116,16 @@ fn generate_circle(segments: u32) -> (Vec<Vertex<Vec2>>, Vec<u32>) {
     (vertices, indices)
 }
 
-fn generate_uv_sphere(n_stacks: u32, n_sectors: u32) -> (Vec<Vertex<Vec3>>, Vec<u32>) {
+fn generate_uv_sphere(n_stacks: u32, n_sectors: u32) -> (Vec<Vertex<Vector3>>, Vec<u32>) {
     let mut vertices = vec![];
     let mut indices = vec![];
 
     // First create bottom and top points
     vertices.push(Vertex {
-        pos: Vec3 {
-            x: 0.0,
-            y: -1.0,
-            z: 0.0,
-        },
+        pos: Vector3::from([0.0, -1.0, 0.0]),
     });
     vertices.push(Vertex {
-        pos: Vec3 {
-            x: 0.0,
-            y: 1.0,
-            z: 0.0,
-        },
+        pos: Vector3::from([0.0, 1.0, 0.0]),
     });
 
     for stack_step in 1..n_stacks {
@@ -161,11 +138,11 @@ fn generate_uv_sphere(n_stacks: u32, n_sectors: u32) -> (Vec<Vertex<Vec3>>, Vec<
             let z_proj_magnitude = phi.cos();
 
             vertices.push(Vertex {
-                pos: Vec3 {
-                    x: z_proj_magnitude * theta.cos(),
-                    y: phi.sin(),
-                    z: z_proj_magnitude * theta.sin(),
-                },
+                pos: Vector3::from([
+                    z_proj_magnitude * theta.cos(),
+                    phi.sin(),
+                    z_proj_magnitude * theta.sin(),
+                ]),
             })
         }
     }
@@ -208,13 +185,13 @@ impl<const N: usize> Stage<N> {
         let positions_vertex_buffer = Buffer::stream(
             context,
             BufferType::VertexBuffer,
-            Self::MAX_BODIES * mem::size_of::<Vec3>(),
+            Self::MAX_BODIES * mem::size_of::<Vector3>(),
         );
 
         let scale_vertex_buffer = Buffer::stream(
             context,
             BufferType::VertexBuffer,
-            Self::MAX_BODIES * mem::size_of::<Vec3>(),
+            Self::MAX_BODIES * mem::size_of::<Vector3>(),
         );
 
         let bindings = Bindings {
@@ -258,9 +235,9 @@ impl<const N: usize> Stage<N> {
         context.set_cull_face(CullFace::Nothing);
 
         let mut inst_pos = Vec::with_capacity(Self::MAX_BODIES);
-        inst_pos.resize(simulation.bodies().len(), Vec3::default());
+        inst_pos.resize(simulation.bodies().len(), Vector3::default());
         let mut inst_scale = Vec::with_capacity(Self::MAX_BODIES);
-        inst_scale.resize(simulation.bodies().len(), Vec3::default());
+        inst_scale.resize(simulation.bodies().len(), Vector3::default());
 
         let run = OwningRun::from(simulation);
         Self {

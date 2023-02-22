@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::iter::Sum;
-use std::ops::{Add, Div, Index, Mul, Sub};
+use std::ops::{Add, Div, Index, IndexMut, Mul, Sub};
 
 #[derive(Copy, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Vector<const N: usize>(#[serde(with = "serde_arrays")] [f32; N]);
@@ -21,6 +21,12 @@ impl<const N: usize> Index<usize> for Vector<N> {
     type Output = f32;
     fn index(&self, i: usize) -> &Self::Output {
         &self.0[i]
+    }
+}
+
+impl<const N: usize> IndexMut<usize> for Vector<N> {
+    fn index_mut(&mut self, i: usize) -> &mut Self::Output {
+        &mut self.0[i]
     }
 }
 
