@@ -139,15 +139,15 @@ fn generate_uv_sphere(n_stacks: u32, n_sectors: u32) -> (Vec<Vertex<Vec3>>, Vec<
     vertices.push(Vertex {
         pos: Vec3 {
             x: 0.0,
-            y: 0.0,
-            z: -1.0,
+            y: -1.0,
+            z: 0.0,
         },
     });
     vertices.push(Vertex {
         pos: Vec3 {
             x: 0.0,
-            y: 0.0,
-            z: 1.0,
+            y: 1.0,
+            z: 0.0,
         },
     });
 
@@ -163,8 +163,8 @@ fn generate_uv_sphere(n_stacks: u32, n_sectors: u32) -> (Vec<Vertex<Vec3>>, Vec<
             vertices.push(Vertex {
                 pos: Vec3 {
                     x: z_proj_magnitude * theta.cos(),
-                    y: z_proj_magnitude * theta.sin(),
-                    z: phi.sin(),
+                    y: phi.sin(),
+                    z: z_proj_magnitude * theta.sin(),
                 },
             })
         }
