@@ -173,6 +173,26 @@ impl<const N: usize> Mul<&Vector<N>> for f32 {
     }
 }
 
+impl Vector<3> {
+    pub fn cross(&self, rhs: &Vector<3>) -> Vector<3> {
+        Vector::<3>::new(
+            self.y() * rhs.z() - self.z() * rhs.y(),
+            self.z() * rhs.x() - self.x() * rhs.z(),
+            self.x() * rhs.y() - self.y() * rhs.x(),
+        )
+    }
+}
+
+impl<const N: usize> Vector<N> {
+    pub fn dot(&self, rhs: &Self) -> f32 {
+        let mut sum = 0.0;
+        for i in 0..N {
+            sum += self.0[i] * rhs.0[i];
+        }
+        sum
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -280,5 +300,36 @@ mod tests {
     fn indexing_a_vector_works() {
         let v = Vector::from([1.0, 2.0, 3.0, 4.0, 5.0]);
         assert_eq!(v[3], 4.0);
+    }
+
+    #[test]
+    fn taking_the_cross_product_of_two_axes_gives_the_third() {
+        let v1 = Vector3::new(1.0, 0.0, 0.0);
+        let v2 = Vector3::new(0.0, 1.0, 0.0);
+        assert_eq!(v1.cross(&v2), Vector3::new(0.0, 0.0, 1.0));
+        assert_eq!(v2.cross(&v1), Vector3::new(0.0, 0.0, -1.0));
+    }
+
+    #[test]
+    fn dot_product_of_two_orthogonal_2d_vectors_is_zero() {
+        let v1 = Vector2::new(2.0, 1.0);
+        let v2 = Vector2::new(-1.0, 2.0);
+        assert_eq!(v1.dot(&v2), 0.0);
+        assert_eq!(v2.dot(&v1), 0.0);
+    }
+
+    #[test]
+    fn dot_product_of_two_orthogonal_3d_vectors_is_zero() {
+        let v1 = Vector3::new(1.0, 0.0, 1.0);
+        let v2 = Vector3::new(0.0, 1.0, 0.0);
+        assert_eq!(v1.dot(&v2), 0.0);
+        assert_eq!(v2.dot(&v1), 0.0);
+    }
+
+    #[test]
+    fn dot_product_of_two_vectors_at_sixty_degrees() {
+        let v1 = Vector2::new(1.0, 0.0);
+        let v2 = Vector2::new(0.5, 0.8660254038);
+        assert_eq!(v1.dot(&v2), 0.5);
     }
 }
