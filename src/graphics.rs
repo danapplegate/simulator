@@ -122,10 +122,10 @@ fn generate_uv_sphere(n_stacks: u32, n_sectors: u32) -> (Vec<Vertex<Vector3>>, V
 
     // First create bottom and top points
     vertices.push(Vertex {
-        pos: Vector3::from([0.0, -1.0, 0.0]),
+        pos: Vector3::new(0.0, -1.0, 0.0),
     });
     vertices.push(Vertex {
-        pos: Vector3::from([0.0, 1.0, 0.0]),
+        pos: Vector3::new(0.0, 1.0, 0.0),
     });
 
     for stack_step in 1..n_stacks {
@@ -138,11 +138,11 @@ fn generate_uv_sphere(n_stacks: u32, n_sectors: u32) -> (Vec<Vertex<Vector3>>, V
             let z_proj_magnitude = phi.cos();
 
             vertices.push(Vertex {
-                pos: Vector3::from([
+                pos: Vector3::new(
                     z_proj_magnitude * theta.cos(),
                     phi.sin(),
                     z_proj_magnitude * theta.sin(),
-                ]),
+                ),
             })
         }
     }
