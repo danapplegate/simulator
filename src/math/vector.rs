@@ -81,10 +81,11 @@ impl Vector<3> {
     }
 
     pub fn cross(&self, rhs: &Vector<3>) -> Vector<3> {
-        let x = self.y() * rhs.z() - self.z() * rhs.y();
-        let y = self.z() * rhs.x() - self.x() * rhs.z();
-        let z = self.x() * rhs.y() - self.y() * rhs.x();
-        Vector::<3>::new(x, y, z)
+        Vector::<3>::new(
+            self.y() * rhs.z() - self.z() * rhs.y(),
+            self.z() * rhs.x() - self.x() * rhs.z(),
+            self.x() * rhs.y() - self.y() * rhs.x(),
+        )
     }
 
     /// Calculates the normalized vector that is normal to the plane formed
@@ -93,10 +94,7 @@ impl Vector<3> {
     /// and v1, and the second or B vector computed as the difference between
     /// v3 and v1.
     pub fn normal(v1: &Self, v2: &Self, v3: &Self) -> Self {
-        let u = v2 - v1;
-        let v = v3 - v1;
-        let cross = u.cross(&v);
-        cross.normalize()
+        (v2 - v1).cross(&(v3 - v1)).normalize()
     }
 }
 
