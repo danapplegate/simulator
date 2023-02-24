@@ -79,6 +79,25 @@ impl Vector<3> {
     pub fn z(&self) -> f32 {
         self.0[2]
     }
+
+    pub fn cross(&self, rhs: &Vector<3>) -> Vector<3> {
+        let x = self.y() * rhs.z() - self.z() * rhs.y();
+        let y = self.z() * rhs.x() - self.x() * rhs.z();
+        let z = self.x() * rhs.y() - self.y() * rhs.x();
+        Vector::<3>::new(x, y, z)
+    }
+
+    /// Calculates the normalized vector that is normal to the plane formed
+    /// by the three position vectors. This is a right-handed operation,
+    /// with the first or A vector computed as the difference between v2
+    /// and v1, and the second or B vector computed as the difference between
+    /// v3 and v1.
+    pub fn normal(v1: &Self, v2: &Self, v3: &Self) -> Self {
+        let u = v2 - v1;
+        let v = v3 - v1;
+        let cross = u.cross(&v);
+        cross.normalize()
+    }
 }
 
 pub type Vector1 = Vector<1>;
@@ -170,16 +189,6 @@ impl<const N: usize> Mul<&Vector<N>> for f32 {
             components[i] = self * other.0[i];
         }
         Vector::<N>(components)
-    }
-}
-
-impl Vector<3> {
-    pub fn cross(&self, rhs: &Vector<3>) -> Vector<3> {
-        Vector::<3>::new(
-            self.y() * rhs.z() - self.z() * rhs.y(),
-            self.z() * rhs.x() - self.x() * rhs.z(),
-            self.x() * rhs.y() - self.y() * rhs.x(),
-        )
     }
 }
 
@@ -331,5 +340,14 @@ mod tests {
         let v1 = Vector2::new(1.0, 0.0);
         let v2 = Vector2::new(0.5, 0.8660254038);
         assert_eq!(v1.dot(&v2), 0.5);
+    }
+
+    #[test]
+    fn calculating_the_normal_of_a_plane_works() {
+        // The back face of a triangular prism
+        let v1 = Vector3::new(0.5, 0.5, -0.5);
+        let v2 = Vector3::new(0.5, -0.5, -0.5);
+        let v3 = Vector3::new(-0.5, -0.5, -0.5);
+        assert_eq!(Vector3::normal(&v1, &v2, &v3), Vector3::new(0.0, 0.0, -1.0));
     }
 }
