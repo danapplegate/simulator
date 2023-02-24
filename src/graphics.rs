@@ -1,21 +1,22 @@
 use std::mem;
 
-use glam::{vec3, Mat4};
+use glam::{vec3, Mat4, Vec3};
 use miniquad::{
     conf::Conf, Bindings, Buffer, BufferLayout, BufferType, Context, CullFace, EventHandler,
-    PassAction, Pipeline, Shader, ShaderMeta, UniformBlockLayout, UniformDesc, VertexAttribute,
-    VertexFormat, VertexStep,
+    PassAction, Pipeline, Shader, ShaderMeta, UniformBlockLayout, UniformDesc, UniformType,
+    VertexAttribute, VertexFormat, VertexStep,
 };
 use std::f32::consts::PI;
 
 use crate::{
-    math::{Vector2, Vector3},
+    math::{Distance, Vector3},
     simulation::{OwningRun, Simulation},
 };
 
 #[repr(C)]
 struct Vertex<T> {
     pos: T,
+    normal: T,
 }
 
 pub fn new_conf() -> Conf {
@@ -39,6 +40,8 @@ pub struct Stage<const N: usize> {
 #[allow(dead_code)]
 struct Uniforms {
     mvp: Mat4,
+    light_color: Vec3,
+    light_pos: Vec3,
 }
 
 const BODY_WIDTHS: [f32; 2] = [6_378_000.0, 100_000.0];
@@ -64,6 +67,9 @@ impl<const N: usize> EventHandler for Stage<N> {
         // model-view-projection matrix
         let (width, height) = ctx.screen_size();
 
+        let light_color = vec3(1.0, 1.0, 1.0);
+        let light_pos = vec3(-2.0, 2.0, 4.0);
+
         let proj = Mat4::perspective_rh_gl(60.0f32.to_radians(), width / height, 0.01, 50.0);
         let view = Mat4::look_at_rh(
             vec3(0.0, 1.5, 3.0),
@@ -83,7 +89,11 @@ impl<const N: usize> EventHandler for Stage<N> {
 
         ctx.apply_pipeline(&self.pipeline);
         ctx.apply_bindings(&self.bindings);
-        ctx.apply_uniforms(&Uniforms { mvp });
+        ctx.apply_uniforms(&Uniforms {
+            mvp,
+            light_color,
+            light_pos,
+        });
 
         ctx.draw(0, self.num_indices as i32, self.inst_pos.len() as i32);
 
@@ -95,27 +105,6 @@ impl<const N: usize> EventHandler for Stage<N> {
 const VERTEX_SHADER: &str = include_str!("shaders/geo.vert");
 const FRAGMENT_SHADER: &str = include_str!("shaders/geo.frag");
 
-#[allow(dead_code)]
-fn generate_circle(segments: u32) -> (Vec<Vertex<Vector2>>, Vec<u32>) {
-    let mut vertices = vec![];
-    let mut indices = vec![];
-    vertices.push(Vertex {
-        pos: Vector2::from([0.0, 0.0]),
-    });
-    vertices.push(Vertex {
-        pos: Vector2::from([1.0, 0.0]),
-    });
-    for i in 1..segments {
-        let radians = i as f32 * 2.0 * PI / segments as f32;
-        vertices.push(Vertex {
-            pos: Vector2::from([radians.cos(), radians.sin()]),
-        });
-        indices.extend(vec![0, i + 1, i]);
-    }
-    indices.extend(vec![0, 1, segments]);
-    (vertices, indices)
-}
-
 fn generate_uv_sphere(n_stacks: u32, n_sectors: u32) -> (Vec<Vertex<Vector3>>, Vec<u32>) {
     let mut vertices = vec![];
     let mut indices = vec![];
@@ -123,9 +112,11 @@ fn generate_uv_sphere(n_stacks: u32, n_sectors: u32) -> (Vec<Vertex<Vector3>>, V
     // First create bottom and top points
     vertices.push(Vertex {
         pos: Vector3::new(0.0, -1.0, 0.0),
+        normal: Vector3::new(0.0, -1.0, 0.0).normalize(),
     });
     vertices.push(Vertex {
         pos: Vector3::new(0.0, 1.0, 0.0),
+        normal: Vector3::new(0.0, 1.0, 0.0).normalize(),
     });
 
     for stack_step in 1..n_stacks {
@@ -136,13 +127,13 @@ fn generate_uv_sphere(n_stacks: u32, n_sectors: u32) -> (Vec<Vertex<Vector3>>, V
         for sector_step in 0..=n_sectors {
             let theta = 2.0 * PI * sector_step as f32 / n_sectors as f32;
             let z_proj_magnitude = phi.cos();
+            let x = z_proj_magnitude * theta.cos();
+            let y = phi.sin();
+            let z = z_proj_magnitude * theta.sin();
 
             vertices.push(Vertex {
-                pos: Vector3::new(
-                    z_proj_magnitude * theta.cos(),
-                    phi.sin(),
-                    z_proj_magnitude * theta.sin(),
-                ),
+                pos: Vector3::new(x, y, z),
+                normal: Vector3::new(x, y, z).normalize(),
             })
         }
     }
@@ -207,7 +198,10 @@ impl<const N: usize> Stage<N> {
         let meta = ShaderMeta {
             images: vec![],
             uniforms: UniformBlockLayout {
-                uniforms: vec![UniformDesc::new("mvp", miniquad::UniformType::Mat4)],
+                uniforms: vec![
+                    UniformDesc::new("mvp", UniformType::Mat4),
+                    UniformDesc::new("light_color", UniformType::Float3),
+                ],
             },
         };
         let shader = Shader::new(context, VERTEX_SHADER, FRAGMENT_SHADER, meta).unwrap();
@@ -226,6 +220,7 @@ impl<const N: usize> Stage<N> {
             ],
             &[
                 VertexAttribute::with_buffer("pos", VertexFormat::Float3, 0),
+                VertexAttribute::with_buffer("normal", VertexFormat::Float3, 0),
                 VertexAttribute::with_buffer("inst_pos", VertexFormat::Float3, 1),
                 VertexAttribute::with_buffer("inst_scale", VertexFormat::Float3, 2),
             ],
