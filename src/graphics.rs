@@ -1,23 +1,18 @@
-use std::mem;
-
 use glam::{vec3, Mat4, Vec3};
 use miniquad::{
     conf::Conf, Bindings, Buffer, BufferLayout, BufferType, Context, CullFace, EventHandler,
     PassAction, Pipeline, Shader, ShaderMeta, UniformBlockLayout, UniformDesc, UniformType,
     VertexAttribute, VertexFormat, VertexStep,
 };
-use std::f32::consts::PI;
+use std::mem;
 
 use crate::{
-    math::{Distance, Vector3},
+    math::Vector3,
     simulation::{OwningRun, Simulation},
 };
 
-#[repr(C)]
-struct Vertex<T> {
-    pos: T,
-    normal: T,
-}
+pub mod model;
+use model::generate_uv_sphere;
 
 pub fn new_conf() -> Conf {
     Conf {
@@ -104,65 +99,6 @@ impl<const N: usize> EventHandler for Stage<N> {
 
 const VERTEX_SHADER: &str = include_str!("shaders/geo.vert");
 const FRAGMENT_SHADER: &str = include_str!("shaders/geo.frag");
-
-fn generate_uv_sphere(n_stacks: u32, n_sectors: u32) -> (Vec<Vertex<Vector3>>, Vec<u32>) {
-    let mut vertices = vec![];
-    let mut indices = vec![];
-
-    // First create bottom and top points
-    vertices.push(Vertex {
-        pos: Vector3::new(0.0, -1.0, 0.0),
-        normal: Vector3::new(0.0, -1.0, 0.0).normalize(),
-    });
-    vertices.push(Vertex {
-        pos: Vector3::new(0.0, 1.0, 0.0),
-        normal: Vector3::new(0.0, 1.0, 0.0).normalize(),
-    });
-
-    for stack_step in 1..n_stacks {
-        let phi = -PI / 2.0 + PI * stack_step as f32 / n_stacks as f32;
-
-        // Create n_sectors+1. The first and last will have the same position coordinates
-        // but allow for different texture coordinates.
-        for sector_step in 0..=n_sectors {
-            let theta = 2.0 * PI * sector_step as f32 / n_sectors as f32;
-            let z_proj_magnitude = phi.cos();
-            let x = z_proj_magnitude * theta.cos();
-            let y = phi.sin();
-            let z = z_proj_magnitude * theta.sin();
-
-            vertices.push(Vertex {
-                pos: Vector3::new(x, y, z),
-                normal: Vector3::new(x, y, z).normalize(),
-            })
-        }
-    }
-
-    // Bottom and top stacks will only need single triangles for their faces
-    for sector_step in 0..n_sectors {
-        let bottom_vertex_offset = 2 + sector_step;
-        let top_vertex_offset = 2 + (n_sectors + 1) * (n_stacks - 2) + sector_step;
-        indices.extend_from_slice(&[bottom_vertex_offset, 0, bottom_vertex_offset + 1]);
-        indices.extend_from_slice(&[top_vertex_offset, 1, top_vertex_offset + 1]);
-    }
-
-    // Each sector of each stack will require two triangles to cover their quadrangle
-    let vertices_per_stack = n_sectors + 1;
-    for stack_step in 1..(n_stacks - 1) {
-        let num_stacks_below = stack_step - 1;
-        let vertex_offset = num_stacks_below * vertices_per_stack;
-        for sector_step in 0..n_sectors {
-            let bottom_left_point = 2 + vertex_offset + sector_step;
-            let bottom_right_point = bottom_left_point + 1;
-            let top_left_point = bottom_left_point + vertices_per_stack;
-            let top_right_point = top_left_point + 1;
-            indices.extend_from_slice(&[top_left_point, bottom_left_point, top_right_point]);
-            indices.extend_from_slice(&[top_right_point, bottom_left_point, bottom_right_point]);
-        }
-    }
-
-    (vertices, indices)
-}
 
 impl<const N: usize> Stage<N> {
     const MAX_BODIES: usize = 256;
