@@ -1,16 +1,16 @@
 #version 330 core
 in vec3 pos;
 in vec3 normal;
-in vec3 inst_pos;
-in vec3 inst_scale;
 
-uniform mat4 mvp;
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
 
 out vec3 Normal;
 out vec3 FragPos;
 
 void main() {
-    FragPos = inst_scale.xyz * pos.xyz + inst_pos.xyz;
-    gl_Position = mvp * vec4(FragPos, 1.0);
+    FragPos = vec3(model * vec4(pos, 1.0));
+    gl_Position = projection * view * vec4(FragPos, 1.0);
     Normal = normal;
 }
