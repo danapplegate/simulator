@@ -4,7 +4,6 @@ use miniquad::{
     PassAction, Pipeline, Shader, ShaderMeta, UniformBlockLayout, UniformDesc, UniformType,
     VertexAttribute, VertexFormat, VertexStep,
 };
-use std::mem;
 
 use crate::{
     math::Vector3,
@@ -58,11 +57,11 @@ impl<const N: usize> EventHandler for Stage<N> {
         let (width, height) = ctx.screen_size();
 
         let light_color = vec3(1.0, 1.0, 1.0);
-        let light_pos = vec3(-2.0, 2.0, 4.0);
+        let light_pos = vec3(-2.0 * self.scale, 2.0 * self.scale, 4.0 * self.scale);
 
         self.ry += 0.01;
         let view = Mat4::look_at_rh(
-            vec3(0.0, self.scale / 4.0, 1.5 * self.scale),
+            vec3(0.0, self.scale / 4.0, 2.5 * self.scale),
             vec3(0.0, 0.0, 0.0),
             vec3(0.0, 1.0, 0.0),
         ) * Mat4::from_rotation_y(self.ry);
@@ -111,7 +110,7 @@ impl<const N: usize> Stage<N> {
     const MAX_BODIES: usize = 256;
 
     pub fn new(context: &mut Context, simulation: Simulation<N>) -> Self {
-        let (vertices, indices) = generate_uv_sphere(10, 12);
+        let (vertices, indices) = generate_uv_sphere(20, 24);
         let geometry_vertex_buffer =
             Buffer::immutable(context, BufferType::VertexBuffer, &vertices);
         let index_buffer = Buffer::immutable(context, BufferType::IndexBuffer, &indices);
@@ -130,6 +129,7 @@ impl<const N: usize> Stage<N> {
                     UniformDesc::new("view", UniformType::Mat4),
                     UniformDesc::new("projection", UniformType::Mat4),
                     UniformDesc::new("light_color", UniformType::Float3),
+                    UniformDesc::new("light_pos", UniformType::Float3),
                 ],
             },
         };
