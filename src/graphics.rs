@@ -1,8 +1,8 @@
 use glam::{vec3, Mat4, Quat, Vec3};
 use miniquad::{
-    conf::Conf, Bindings, Buffer, BufferLayout, BufferType, Context, CullFace, EventHandler,
-    PassAction, Pipeline, Shader, ShaderMeta, UniformBlockLayout, UniformDesc, UniformType,
-    VertexAttribute, VertexFormat, VertexStep,
+    conf::Conf, Bindings, Buffer, BufferLayout, BufferType, Comparison, Context, CullFace,
+    EventHandler, PassAction, Pipeline, PipelineParams, Shader, ShaderMeta, UniformBlockLayout,
+    UniformDesc, UniformType, VertexAttribute, VertexFormat, VertexStep,
 };
 
 use crate::{
@@ -57,21 +57,20 @@ impl<const N: usize> EventHandler for Stage<N> {
         let (width, height) = ctx.screen_size();
 
         let light_color = vec3(1.0, 1.0, 1.0);
-        let light_pos = vec3(-2.0 * self.scale, 2.0 * self.scale, 4.0 * self.scale);
+        let light_pos = vec3(-2.0, 2.0, 4.0);
 
         self.ry += 0.01;
         let view = Mat4::look_at_rh(
-            vec3(0.0, self.scale / 4.0, 2.5 * self.scale),
+            vec3(0.0, 0.0, 2.5),
             vec3(0.0, 0.0, 0.0),
             vec3(0.0, 1.0, 0.0),
         ) * Mat4::from_rotation_y(self.ry);
 
-        let projection =
-            Mat4::perspective_rh_gl(60.0f32.to_radians(), width / height, 0.01, 2.0 * self.scale);
+        let projection = Mat4::perspective_rh_gl(60.0f32.to_radians(), width / height, 0.01, 10.0);
 
         ctx.begin_default_pass(PassAction::Clear {
-            color: Some((0., 0., 0., 1.)),
-            depth: None,
+            color: Some((0., 0., 0., 0.)),
+            depth: Some(1.),
             stencil: None,
         });
 
@@ -82,9 +81,13 @@ impl<const N: usize> EventHandler for Stage<N> {
             let inst_pos = &self.inst_pos[i];
             let inst_scale = BODY_WIDTHS[i];
             let model = Mat4::from_scale_rotation_translation(
-                inst_scale * Vec3::ONE,
+                inst_scale * Vec3::ONE / self.scale,
                 Quat::from_rotation_x(0.0),
-                vec3(inst_pos.x(), inst_pos.y(), inst_pos.z()),
+                vec3(
+                    inst_pos.x() / self.scale,
+                    inst_pos.y() / self.scale,
+                    inst_pos.z() / self.scale,
+                ),
             );
 
             ctx.apply_uniforms(&Uniforms {
@@ -134,7 +137,10 @@ impl<const N: usize> Stage<N> {
             },
         };
         let shader = Shader::new(context, VERTEX_SHADER, FRAGMENT_SHADER, meta).unwrap();
-        let pipeline = Pipeline::new(
+        let mut pipeline_params = PipelineParams::default();
+        pipeline_params.depth_test = Comparison::LessOrEqual;
+        pipeline_params.depth_write = true;
+        let pipeline = Pipeline::with_params(
             context,
             &[
                 BufferLayout::default(),
@@ -152,6 +158,7 @@ impl<const N: usize> Stage<N> {
                 VertexAttribute::with_buffer("normal", VertexFormat::Float3, 0),
             ],
             shader,
+            pipeline_params,
         );
 
         context.set_cull_face(CullFace::Nothing);
