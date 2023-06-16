@@ -29,6 +29,7 @@ pub struct Stage<const N: usize> {
     scale: f32,
     run: OwningRun<N>,
     inst_pos: Vec<Vector3>,
+    inst_rot: Vec<Vector3>,
     ry: f32,
     rx: f32,
 }
@@ -68,6 +69,7 @@ impl<const N: usize> EventHandler for Stage<N> {
             self.inst_pos[i][0] = body.position[0];
             self.inst_pos[i][1] = body.position[1];
             self.inst_pos[i][2] = body.position[2];
+            self.inst_rot[i][1] += 0.01;
         }
     }
 
@@ -98,10 +100,11 @@ impl<const N: usize> EventHandler for Stage<N> {
 
         for i in 0..self.inst_pos.len() {
             let inst_pos = &self.inst_pos[i];
+            let inst_rot = &self.inst_rot[i];
             let inst_scale = BODY_WIDTHS[i];
             let model = Mat4::from_scale_rotation_translation(
                 inst_scale * Vec3::ONE / self.scale,
-                Quat::from_rotation_x(0.0),
+                Quat::from_rotation_y(inst_rot[1]),
                 vec3(
                     inst_pos.x() / self.scale,
                     inst_pos.y() / self.scale,
@@ -201,6 +204,8 @@ impl<const N: usize> Stage<N> {
 
         let mut inst_pos = Vec::with_capacity(Self::MAX_BODIES);
         inst_pos.resize(simulation.bodies().len(), Vector3::default());
+        let mut inst_rot = Vec::with_capacity(Self::MAX_BODIES);
+        inst_rot.resize(simulation.bodies().len(), Vector3::default());
 
         let run = OwningRun::from(simulation);
         Self {
@@ -210,6 +215,7 @@ impl<const N: usize> Stage<N> {
             num_indices: indices.len(),
             run,
             inst_pos,
+            inst_rot,
             ry: 0.0,
             rx: 0.0,
         }
