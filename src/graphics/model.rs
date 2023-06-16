@@ -1,15 +1,19 @@
-use crate::math::{Distance, Vector3};
+use crate::math::{Distance, Vector2, Vector3};
 use std::f32::consts::PI;
 #[repr(C)]
-pub struct Vertex<T> {
+pub struct Vertex<T, U> {
     pos: T,
     normal: T,
+    tex_coord: U,
 }
 
 /// Generates the vertices and indices of a UV sphere with the given
 /// number of stacks and sectors, in local space, i.e. with coordinates
 /// between -1.0 and 1.0 on all axes.
-pub fn generate_uv_sphere(n_stacks: u32, n_sectors: u32) -> (Vec<Vertex<Vector3>>, Vec<u32>) {
+pub fn generate_uv_sphere(
+    n_stacks: u32,
+    n_sectors: u32,
+) -> (Vec<Vertex<Vector3, Vector2>>, Vec<u32>) {
     let mut vertices = vec![];
     let mut indices = vec![];
 
@@ -17,19 +21,23 @@ pub fn generate_uv_sphere(n_stacks: u32, n_sectors: u32) -> (Vec<Vertex<Vector3>
     vertices.push(Vertex {
         pos: Vector3::new(0.0, -1.0, 0.0),
         normal: Vector3::new(0.0, -1.0, 0.0).normalize(),
+        tex_coord: Vector2::new(0.5, 0.),
     });
     vertices.push(Vertex {
         pos: Vector3::new(0.0, 1.0, 0.0),
         normal: Vector3::new(0.0, 1.0, 0.0).normalize(),
+        tex_coord: Vector2::new(0.5, 1.),
     });
 
     for stack_step in 1..n_stacks {
-        let phi = -PI / 2.0 + PI * stack_step as f32 / n_stacks as f32;
+        let percent_stacks = stack_step as f32 / n_stacks as f32;
+        let phi = -PI / 2.0 + PI * percent_stacks;
 
         // Create n_sectors+1. The first and last will have the same position coordinates
         // but allow for different texture coordinates.
         for sector_step in 0..=n_sectors {
-            let theta = 2.0 * PI * sector_step as f32 / n_sectors as f32;
+            let percent_rotation = sector_step as f32 / n_sectors as f32;
+            let theta = 2.0 * PI * percent_rotation;
             let z_proj_magnitude = phi.cos();
             let x = z_proj_magnitude * theta.cos();
             let y = phi.sin();
@@ -38,6 +46,7 @@ pub fn generate_uv_sphere(n_stacks: u32, n_sectors: u32) -> (Vec<Vertex<Vector3>
             vertices.push(Vertex {
                 pos: Vector3::new(x, y, z),
                 normal: Vector3::new(x, y, z).normalize(),
+                tex_coord: Vector2::new(1.0 - percent_rotation, 1.0 - percent_stacks),
             })
         }
     }

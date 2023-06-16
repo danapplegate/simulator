@@ -1,8 +1,10 @@
 use glam::{vec3, Mat4, Quat, Vec3};
+use image::io::Reader as ImageReader;
 use miniquad::{
     conf::Conf, Bindings, Buffer, BufferLayout, BufferType, Comparison, Context, CullFace,
-    EventHandler, PassAction, Pipeline, PipelineParams, Shader, ShaderMeta, UniformBlockLayout,
-    UniformDesc, UniformType, VertexAttribute, VertexFormat, VertexStep,
+    EventHandler, FilterMode, PassAction, Pipeline, PipelineParams, Shader, ShaderMeta, Texture,
+    TextureFormat, TextureParams, TextureWrap, UniformBlockLayout, UniformDesc, UniformType,
+    VertexAttribute, VertexFormat, VertexStep,
 };
 
 use crate::{
@@ -118,14 +120,30 @@ impl<const N: usize> Stage<N> {
             Buffer::immutable(context, BufferType::VertexBuffer, &vertices);
         let index_buffer = Buffer::immutable(context, BufferType::IndexBuffer, &indices);
 
+        let img = ImageReader::open("data/earth.jpeg")
+            .unwrap()
+            .decode()
+            .unwrap();
+        let tex = Texture::from_data_and_format(
+            context,
+            img.as_rgb8().unwrap(),
+            TextureParams {
+                format: TextureFormat::RGB8,
+                wrap: TextureWrap::Repeat,
+                filter: FilterMode::Linear,
+                width: img.width(),
+                height: img.height(),
+            },
+        );
+
         let bindings = Bindings {
             vertex_buffers: vec![geometry_vertex_buffer],
             index_buffer: index_buffer,
-            images: vec![],
+            images: vec![tex],
         };
 
         let meta = ShaderMeta {
-            images: vec![],
+            images: vec!["textureSource".to_string()],
             uniforms: UniformBlockLayout {
                 uniforms: vec![
                     UniformDesc::new("model", UniformType::Mat4),
@@ -156,6 +174,7 @@ impl<const N: usize> Stage<N> {
             &[
                 VertexAttribute::with_buffer("pos", VertexFormat::Float3, 0),
                 VertexAttribute::with_buffer("normal", VertexFormat::Float3, 0),
+                VertexAttribute::with_buffer("tex_coord", VertexFormat::Float2, 0),
             ],
             shader,
             pipeline_params,
