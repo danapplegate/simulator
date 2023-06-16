@@ -2,9 +2,9 @@ use glam::{vec3, Mat4, Quat, Vec3};
 use image::io::Reader as ImageReader;
 use miniquad::{
     conf::Conf, Bindings, Buffer, BufferLayout, BufferType, Comparison, Context, CullFace,
-    EventHandler, FilterMode, PassAction, Pipeline, PipelineParams, Shader, ShaderMeta, Texture,
-    TextureFormat, TextureParams, TextureWrap, UniformBlockLayout, UniformDesc, UniformType,
-    VertexAttribute, VertexFormat, VertexStep,
+    EventHandler, FilterMode, KeyCode, PassAction, Pipeline, PipelineParams, Shader, ShaderMeta,
+    Texture, TextureFormat, TextureParams, TextureWrap, UniformBlockLayout, UniformDesc,
+    UniformType, VertexAttribute, VertexFormat, VertexStep,
 };
 
 use crate::{
@@ -30,6 +30,7 @@ pub struct Stage<const N: usize> {
     run: OwningRun<N>,
     inst_pos: Vec<Vector3>,
     ry: f32,
+    rx: f32,
 }
 
 #[allow(dead_code)]
@@ -44,6 +45,22 @@ struct Uniforms {
 const BODY_WIDTHS: [f32; 2] = [6_378_000.0, 100_000.0];
 
 impl<const N: usize> EventHandler for Stage<N> {
+    fn key_down_event(
+        &mut self,
+        _ctx: &mut Context,
+        keycode: miniquad::KeyCode,
+        _keymods: miniquad::KeyMods,
+        _repeat: bool,
+    ) {
+        match keycode {
+            KeyCode::Up => self.rx += 0.1,
+            KeyCode::Down => self.rx -= 0.1,
+            KeyCode::Left => self.ry -= 0.1,
+            KeyCode::Right => self.ry += 0.1,
+            _ => {}
+        }
+    }
+
     fn update(&mut self, _ctx: &mut Context) {
         let step = self.run.next().unwrap();
 
@@ -61,12 +78,12 @@ impl<const N: usize> EventHandler for Stage<N> {
         let light_color = vec3(1.0, 1.0, 1.0);
         let light_pos = vec3(-2.0, 2.0, 4.0);
 
-        self.ry += 0.01;
         let view = Mat4::look_at_rh(
             vec3(0.0, 0.0, 2.5),
             vec3(0.0, 0.0, 0.0),
             vec3(0.0, 1.0, 0.0),
-        ) * Mat4::from_rotation_y(self.ry);
+        ) * Mat4::from_rotation_y(self.ry)
+            * Mat4::from_rotation_x(self.rx);
 
         let projection = Mat4::perspective_rh_gl(60.0f32.to_radians(), width / height, 0.01, 10.0);
 
@@ -194,6 +211,7 @@ impl<const N: usize> Stage<N> {
             run,
             inst_pos,
             ry: 0.0,
+            rx: 0.0,
         }
     }
 }
