@@ -21,12 +21,12 @@ pub fn generate_uv_sphere(
     vertices.push(Vertex {
         pos: Vector3::new(0.0, -1.0, 0.0),
         normal: Vector3::new(0.0, -1.0, 0.0).normalize(),
-        tex_coord: Vector2::new(0.5, 0.),
+        tex_coord: Vector2::new(0.5, 1.),
     });
     vertices.push(Vertex {
         pos: Vector3::new(0.0, 1.0, 0.0),
         normal: Vector3::new(0.0, 1.0, 0.0).normalize(),
-        tex_coord: Vector2::new(0.5, 1.),
+        tex_coord: Vector2::new(0.5, 0.),
     });
 
     for stack_step in 1..n_stacks {
