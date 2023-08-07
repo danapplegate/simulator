@@ -6,6 +6,7 @@ use miniquad::{
     Texture, TextureFormat, TextureParams, TextureWrap, UniformBlockLayout, UniformDesc,
     UniformType, VertexAttribute, VertexFormat, VertexStep,
 };
+use std::{collections::HashMap, path::PathBuf};
 
 use crate::{
     math::Vector3,
@@ -14,6 +15,8 @@ use crate::{
 
 pub mod model;
 use model::generate_uv_sphere;
+
+use self::model::Model;
 
 pub fn new_conf() -> Conf {
     Conf {
@@ -32,6 +35,8 @@ pub struct Stage<const N: usize> {
     inst_rot: Vec<Vector3>,
     ry: f32,
     rx: f32,
+    models: HashMap<String, Model>,
+    config_root: PathBuf,
 }
 
 #[allow(dead_code)]
@@ -134,16 +139,19 @@ const FRAGMENT_SHADER: &str = include_str!("shaders/geo.frag");
 impl<const N: usize> Stage<N> {
     const MAX_BODIES: usize = 256;
 
-    pub fn new(context: &mut Context, simulation: Simulation<N>) -> Self {
+    pub fn new(
+        context: &mut Context,
+        simulation: Simulation<N>,
+        models: HashMap<String, Model>,
+        config_root: PathBuf,
+    ) -> Self {
         let (vertices, indices) = generate_uv_sphere(20, 24);
         let geometry_vertex_buffer =
             Buffer::immutable(context, BufferType::VertexBuffer, &vertices);
         let index_buffer = Buffer::immutable(context, BufferType::IndexBuffer, &indices);
 
-        let img = ImageReader::open("data/earth.jpeg")
-            .unwrap()
-            .decode()
-            .unwrap();
+        let img_path = config_root.join("images/earth.jpeg");
+        let img = ImageReader::open(img_path).unwrap().decode().unwrap();
         let tex = Texture::from_data_and_format(
             context,
             img.as_rgb8().unwrap(),
@@ -218,6 +226,8 @@ impl<const N: usize> Stage<N> {
             inst_rot,
             ry: 0.0,
             rx: 0.0,
+            models: models,
+            config_root: config_root,
         }
     }
 }

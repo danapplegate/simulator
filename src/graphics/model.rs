@@ -1,10 +1,27 @@
+use serde::{Deserialize, Serialize};
+
 use crate::math::{Distance, Vector2, Vector3};
 use std::f32::consts::PI;
+use std::path::PathBuf;
+
 #[repr(C)]
 pub struct Vertex<T, U> {
     pos: T,
     normal: T,
     tex_coord: U,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Shape {
+    #[default]
+    Sphere,
+}
+
+#[derive(Debug, Default, Serialize, Deserialize)]
+pub struct Model {
+    pub shape: Shape,
+    pub texture: PathBuf,
 }
 
 /// Generates the vertices and indices of a UV sphere with the given

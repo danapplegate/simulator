@@ -1,7 +1,9 @@
+use crate::config::Config;
 use crate::force::{ForceVector, Gravity};
+use crate::graphics::model::Model;
 use crate::math::vector::{Distance, Vector};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 use std::mem;
 
 pub type PositionVector<const N: usize> = Vector<N>;
@@ -11,8 +13,12 @@ pub type VelocityVector<const N: usize> = Vector<N>;
 pub struct Body<const N: usize> {
     pub label: String,
     pub mass: f32,
+    #[serde(default)]
     pub position: PositionVector<N>,
+    #[serde(default)]
     pub velocity: VelocityVector<N>,
+    #[serde(default)]
+    pub model: String,
 
     #[serde(skip)]
     pub forces: Vec<ForceVector<N>>,
@@ -22,16 +28,16 @@ impl<const N: usize> Body<N> {
     pub fn new(
         label: String,
         mass: f32,
-        position: Option<PositionVector<N>>,
-        velocity: Option<VelocityVector<N>>,
+        position: PositionVector<N>,
+        velocity: VelocityVector<N>,
+        model: String,
     ) -> Self {
-        let p = position.unwrap_or_default();
-        let v = velocity.unwrap_or_default();
         Self {
             label,
             mass,
-            position: p,
-            velocity: v,
+            position: position,
+            velocity: velocity,
+            model: model,
             forces: Vec::new(),
         }
     }
@@ -57,8 +63,9 @@ fn body_map_from_bodies<'a, const N: usize>(bodies: &'a Vec<Body<N>>) -> BodyMap
             Body::new(
                 body.label.clone(),
                 body.mass,
-                Some(body.position),
-                Some(body.velocity),
+                body.position,
+                body.velocity,
+                body.model.clone(),
             ),
         );
     }
@@ -77,6 +84,7 @@ fn compute_next_step<const N: usize>(body_map: &BodyMap<N>, t_step: f32) -> Body
         let mut new_body = Body {
             label: body.label.clone(),
             forces: force_map.remove(&body.label).unwrap_or_default(),
+            model: body.model.clone(),
             ..*body
         };
 

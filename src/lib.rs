@@ -1,3 +1,4 @@
+pub mod config;
 pub mod force;
 pub mod graphics;
 pub mod math;

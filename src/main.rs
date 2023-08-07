@@ -1,10 +1,10 @@
 use clap::{Parser, ValueEnum};
 use miniquad;
+use simulator::config::Config;
 use simulator::graphics::{self, Stage};
 use simulator::output_adapter::{
     csv_adapter::CsvAdapter, stdout_adapter::StdoutAdapter, OutputAdapter,
 };
-use simulator::simulation::Simulation;
 use std::path::PathBuf;
 use std::{error::Error, fs};
 
@@ -31,11 +31,12 @@ struct Args {
 }
 
 fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
-    let config = Args::parse();
-    let input_yaml = fs::read_to_string(config.infile)?;
-    let sim: Simulation<3> = serde_yaml::from_str(&input_yaml)?;
+    let args = Args::parse();
+    let input_yaml = fs::read_to_string(&args.infile)?;
+    let config: Config<3> = serde_yaml::from_str(&input_yaml)?;
+    let sim = config.simulation;
 
-    match config.output {
+    match args.output {
         OutputType::Stdout => {
             let adapter = StdoutAdapter::new(&sim);
             adapter.output();
@@ -46,7 +47,10 @@ fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
         }
         OutputType::Graphical => {
             let graphics_conf = graphics::new_conf();
-            miniquad::start(graphics_conf, move |ctx| Box::new(Stage::new(ctx, sim)));
+            let config_root = args.infile.parent().unwrap().to_path_buf();
+            miniquad::start(graphics_conf, move |ctx| {
+                Box::new(Stage::new(ctx, sim, config.models, config_root))
+            });
         }
     }
 
