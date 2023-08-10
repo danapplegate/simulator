@@ -2,12 +2,12 @@ simulation:
   t_start: 0.0
   t_step: 5.0
   bodies:
-    - label: body1
-      mass: 1.0
-      diameter: 100000.0
+    - label: Moon
+      mass: 7.342e22
+      diameter: 3476200
       position:
         - 0.0
-        - 8378137.0
+        - 362600000.0
         - 0.0
       velocity:
         - 6900.0
@@ -30,4 +30,8 @@ models:
     texture: images/earth.jpeg
     bodies:
       - Earth
-      - body1
+  moon:
+    shape: sphere
+    texture: images/moon.jpeg
+    bodies:
+      - Moon

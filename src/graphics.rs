@@ -85,7 +85,7 @@ impl EventHandler for Stage {
         let light_pos = vec3(-2.0, 2.0, 4.0);
 
         let view = Mat4::look_at_rh(
-            vec3(0.0, 0.0, 2.5),
+            vec3(0.0, 0.0, 4.5),
             vec3(0.0, 0.0, 0.0),
             vec3(0.0, 1.0, 0.0),
         ) * Mat4::from_rotation_y(self.ry)
