@@ -1,8 +1,25 @@
+use glam::{vec3, Mat4, Quat, Vec3};
+use image::io::Reader as ImageReader;
+use miniquad::{
+    Bindings, Buffer, BufferType, Context, FilterMode, Texture, TextureFormat, TextureParams,
+    TextureWrap,
+};
 use serde::{Deserialize, Serialize};
 
 use crate::math::{Distance, Vector2, Vector3};
 use std::f32::consts::PI;
 use std::path::PathBuf;
+
+use super::BodyStateMap;
+
+#[derive(Clone, Copy, Default)]
+pub struct Uniforms {
+    model: Mat4,
+    pub view: Mat4,
+    pub projection: Mat4,
+    pub light_color: Vec3,
+    pub light_pos: Vec3,
+}
 
 #[repr(C)]
 pub struct Vertex<T, U> {
@@ -18,10 +35,73 @@ pub enum Shape {
     Sphere,
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Model {
     pub shape: Shape,
     pub texture: PathBuf,
+    pub bodies: Vec<String>,
+
+    #[serde(skip)]
+    bindings: Option<Bindings>,
+    #[serde(skip)]
+    num_indices: usize,
+}
+
+impl Model {
+    pub fn load(&mut self, context: &mut Context, root_path: &PathBuf) {
+        let img_path = root_path.join(&self.texture);
+        let img = ImageReader::open(img_path).unwrap().decode().unwrap();
+        let texture_resource = Texture::from_data_and_format(
+            context,
+            img.as_rgb8().unwrap(),
+            TextureParams {
+                format: TextureFormat::RGB8,
+                wrap: TextureWrap::Repeat,
+                filter: FilterMode::Linear,
+                width: img.width(),
+                height: img.height(),
+            },
+        );
+        let (vertices, indices) = generate_uv_sphere(20, 24);
+        let geometry_vertex_buffer =
+            Buffer::immutable(context, BufferType::VertexBuffer, &vertices);
+        let index_buffer = Buffer::immutable(context, BufferType::IndexBuffer, &indices);
+
+        self.bindings = Some(Bindings {
+            vertex_buffers: vec![geometry_vertex_buffer],
+            index_buffer: index_buffer,
+            images: vec![texture_resource],
+        });
+        self.num_indices = indices.len();
+    }
+
+    pub fn draw_bodies(
+        &self,
+        context: &mut Context,
+        body_state_map: &BodyStateMap,
+        uniforms: &Uniforms,
+        scale: f32,
+    ) {
+        for body_label in &self.bodies {
+            let body_state = body_state_map.get(body_label).unwrap();
+            let inst_scale = body_state.diameter;
+            let model_mat = Mat4::from_scale_rotation_translation(
+                inst_scale * Vec3::ONE / scale,
+                Quat::from_rotation_y(body_state.rot[1]),
+                vec3(
+                    body_state.pos.x() / scale,
+                    body_state.pos.y() / scale,
+                    body_state.pos.z() / scale,
+                ),
+            );
+            let mut unif = uniforms.clone();
+            unif.model = model_mat;
+
+            context.apply_bindings(self.bindings.as_ref().unwrap());
+            context.apply_uniforms(&unif);
+            context.draw(0, self.num_indices as i32, 1);
+        }
+    }
 }
 
 /// Generates the vertices and indices of a UV sphere with the given

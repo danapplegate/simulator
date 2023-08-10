@@ -1,22 +1,18 @@
-use glam::{vec3, Mat4, Quat, Vec3};
-use image::io::Reader as ImageReader;
+use glam::{vec3, Mat4};
 use miniquad::{
-    conf::Conf, Bindings, Buffer, BufferLayout, BufferType, Comparison, Context, CullFace,
-    EventHandler, FilterMode, KeyCode, PassAction, Pipeline, PipelineParams, Shader, ShaderMeta,
-    Texture, TextureFormat, TextureParams, TextureWrap, UniformBlockLayout, UniformDesc,
-    UniformType, VertexAttribute, VertexFormat, VertexStep,
+    conf::Conf, BufferLayout, Comparison, Context, CullFace, EventHandler, KeyCode, PassAction,
+    Pipeline, PipelineParams, Shader, ShaderMeta, UniformBlockLayout, UniformDesc, UniformType,
+    VertexAttribute, VertexFormat, VertexStep,
 };
 use std::{collections::HashMap, path::PathBuf};
 
 use crate::{
     math::Vector3,
-    simulation::{OwningRun, Simulation},
+    simulation::{Body, OwningRun, Simulation},
 };
 
 pub mod model;
-use model::generate_uv_sphere;
-
-use self::model::Model;
+use self::model::{Model, Uniforms};
 
 pub fn new_conf() -> Conf {
     Conf {
@@ -25,32 +21,35 @@ pub fn new_conf() -> Conf {
     }
 }
 
-pub struct Stage<const N: usize> {
+#[derive(Default)]
+pub struct BodyState {
+    pos: Vector3,
+    rot: Vector3,
+    diameter: f32,
+}
+impl From<&Body<3>> for BodyState {
+    fn from(body: &Body<3>) -> Self {
+        BodyState {
+            pos: body.position,
+            rot: Vector3::default(),
+            diameter: body.diameter,
+        }
+    }
+}
+
+pub type BodyStateMap = HashMap<String, BodyState>;
+
+pub struct Stage {
     pipeline: Pipeline,
-    bindings: Bindings,
-    num_indices: usize,
     scale: f32,
-    run: OwningRun<N>,
-    inst_pos: Vec<Vector3>,
-    inst_rot: Vec<Vector3>,
+    run: OwningRun<3>,
+    body_state_map: BodyStateMap,
     ry: f32,
     rx: f32,
     models: HashMap<String, Model>,
-    config_root: PathBuf,
 }
 
-#[allow(dead_code)]
-struct Uniforms {
-    model: Mat4,
-    view: Mat4,
-    projection: Mat4,
-    light_color: Vec3,
-    light_pos: Vec3,
-}
-
-const BODY_WIDTHS: [f32; 2] = [6_378_000.0, 100_000.0];
-
-impl<const N: usize> EventHandler for Stage<N> {
+impl EventHandler for Stage {
     fn key_down_event(
         &mut self,
         _ctx: &mut Context,
@@ -70,11 +69,11 @@ impl<const N: usize> EventHandler for Stage<N> {
     fn update(&mut self, _ctx: &mut Context) {
         let step = self.run.next().unwrap();
 
-        for (i, (_, body)) in step.body_map.iter().enumerate() {
-            self.inst_pos[i][0] = body.position[0];
-            self.inst_pos[i][1] = body.position[1];
-            self.inst_pos[i][2] = body.position[2];
-            self.inst_rot[i][1] += 0.01;
+        for (label, body) in step.body_map.iter() {
+            self.body_state_map.get_mut(label).unwrap().pos = body.position;
+            self.body_state_map.get_mut(label).unwrap().rot =
+                Vector3::new(0.0, step.t / 1000.0, 0.0);
+            self.body_state_map.get_mut(label).unwrap().diameter = body.diameter;
         }
     }
 
@@ -94,6 +93,12 @@ impl<const N: usize> EventHandler for Stage<N> {
 
         let projection = Mat4::perspective_rh_gl(60.0f32.to_radians(), width / height, 0.01, 10.0);
 
+        let mut uniforms = Uniforms::default();
+        uniforms.view = view;
+        uniforms.projection = projection;
+        uniforms.light_color = light_color;
+        uniforms.light_pos = light_pos;
+
         ctx.begin_default_pass(PassAction::Clear {
             color: Some((0., 0., 0., 0.)),
             depth: Some(1.),
@@ -101,31 +106,9 @@ impl<const N: usize> EventHandler for Stage<N> {
         });
 
         ctx.apply_pipeline(&self.pipeline);
-        ctx.apply_bindings(&self.bindings);
 
-        for i in 0..self.inst_pos.len() {
-            let inst_pos = &self.inst_pos[i];
-            let inst_rot = &self.inst_rot[i];
-            let inst_scale = BODY_WIDTHS[i];
-            let model = Mat4::from_scale_rotation_translation(
-                inst_scale * Vec3::ONE / self.scale,
-                Quat::from_rotation_y(inst_rot[1]),
-                vec3(
-                    inst_pos.x() / self.scale,
-                    inst_pos.y() / self.scale,
-                    inst_pos.z() / self.scale,
-                ),
-            );
-
-            ctx.apply_uniforms(&Uniforms {
-                model,
-                view,
-                projection,
-                light_color,
-                light_pos,
-            });
-
-            ctx.draw(0, self.num_indices as i32, 1);
+        for (_, m) in &self.models {
+            m.draw_bodies(ctx, &self.body_state_map, &mut uniforms, self.scale);
         }
 
         ctx.end_render_pass();
@@ -136,39 +119,18 @@ impl<const N: usize> EventHandler for Stage<N> {
 const VERTEX_SHADER: &str = include_str!("shaders/geo.vert");
 const FRAGMENT_SHADER: &str = include_str!("shaders/geo.frag");
 
-impl<const N: usize> Stage<N> {
+impl Stage {
     const MAX_BODIES: usize = 256;
 
     pub fn new(
         context: &mut Context,
-        simulation: Simulation<N>,
-        models: HashMap<String, Model>,
+        simulation: Simulation<3>,
+        mut models: HashMap<String, Model>,
         config_root: PathBuf,
     ) -> Self {
-        let (vertices, indices) = generate_uv_sphere(20, 24);
-        let geometry_vertex_buffer =
-            Buffer::immutable(context, BufferType::VertexBuffer, &vertices);
-        let index_buffer = Buffer::immutable(context, BufferType::IndexBuffer, &indices);
-
-        let img_path = config_root.join("images/earth.jpeg");
-        let img = ImageReader::open(img_path).unwrap().decode().unwrap();
-        let tex = Texture::from_data_and_format(
-            context,
-            img.as_rgb8().unwrap(),
-            TextureParams {
-                format: TextureFormat::RGB8,
-                wrap: TextureWrap::Repeat,
-                filter: FilterMode::Linear,
-                width: img.width(),
-                height: img.height(),
-            },
-        );
-
-        let bindings = Bindings {
-            vertex_buffers: vec![geometry_vertex_buffer],
-            index_buffer: index_buffer,
-            images: vec![tex],
-        };
+        for (_, m) in &mut models {
+            m.load(context, &config_root);
+        }
 
         let meta = ShaderMeta {
             images: vec!["textureSource".to_string()],
@@ -208,26 +170,28 @@ impl<const N: usize> Stage<N> {
             pipeline_params,
         );
 
-        context.set_cull_face(CullFace::Nothing);
+        context.set_cull_face(CullFace::Back);
 
         let mut inst_pos = Vec::with_capacity(Self::MAX_BODIES);
         inst_pos.resize(simulation.bodies().len(), Vector3::default());
         let mut inst_rot = Vec::with_capacity(Self::MAX_BODIES);
         inst_rot.resize(simulation.bodies().len(), Vector3::default());
 
+        let mut body_state_map = BodyStateMap::new();
+        for b in simulation.bodies() {
+            body_state_map.insert(b.label.clone(), b.into());
+        }
+
         let run = OwningRun::from(simulation);
+
         Self {
             pipeline,
-            bindings,
+            body_state_map,
             scale: 10_000_000.0,
-            num_indices: indices.len(),
             run,
-            inst_pos,
-            inst_rot,
             ry: 0.0,
             rx: 0.0,
             models: models,
-            config_root: config_root,
         }
     }
 }

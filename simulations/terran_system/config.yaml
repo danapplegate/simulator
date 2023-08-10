@@ -4,6 +4,7 @@ simulation:
   bodies:
     - label: body1
       mass: 1.0
+      diameter: 100000.0
       position:
         - 0.0
         - 8378137.0
@@ -14,6 +15,7 @@ simulation:
         - 0.0
     - label: Earth
       mass: 5.9722e24
+      diameter: 6378000.0
       position:
         - 0.0
         - 0.0
@@ -22,8 +24,10 @@ simulation:
         - 0.0
         - 0.0
         - 0.0
-      model: earth
 models:
   earth:
     shape: sphere
     texture: images/earth.jpeg
+    bodies:
+      - Earth
+      - body1
