@@ -127,11 +127,11 @@ impl<const N: usize> Distance for Vector<N> {
     }
 
     fn magnitude(&self) -> f32 {
-        let mut sum_of_squares = 0_f32;
+        let mut sum_of_squares = 0_f64;
         for i in 0..N {
-            sum_of_squares += self.0[i].powi(2);
+            sum_of_squares += (self.0[i] as f64).powi(2);
         }
-        sum_of_squares.sqrt()
+        sum_of_squares.sqrt() as f32
     }
 }
 
