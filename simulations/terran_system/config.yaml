@@ -1,16 +1,16 @@
 simulation:
   t_start: 0.0
-  t_step: 5.0
+  t_step: 200.0
   bodies:
     - label: Moon
       mass: 7.342e22
-      diameter: 3476200
+      diameter: 3476200.0
       position:
         - 0.0
-        - 362600000.0
         - 0.0
+        - -405400000.0
       velocity:
-        - 6900.0
+        - 1022.0
         - 0.0
         - 0.0
     - label: Earth

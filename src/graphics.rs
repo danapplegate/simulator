@@ -85,13 +85,14 @@ impl EventHandler for Stage {
         let light_pos = vec3(-2.0, 2.0, 4.0);
 
         let view = Mat4::look_at_rh(
-            vec3(0.0, 0.0, 4.5),
+            vec3(0.0, 0.0, 0.3),
             vec3(0.0, 0.0, 0.0),
             vec3(0.0, 1.0, 0.0),
         ) * Mat4::from_rotation_y(self.ry)
             * Mat4::from_rotation_x(self.rx);
 
-        let projection = Mat4::perspective_rh_gl(60.0f32.to_radians(), width / height, 0.01, 10.0);
+        let projection =
+            Mat4::perspective_rh_gl(60.0f32.to_radians(), width / height, 0.01, 1_000_000.0);
 
         let mut uniforms = Uniforms::default();
         uniforms.view = view;
@@ -139,6 +140,7 @@ impl Stage {
                     UniformDesc::new("model", UniformType::Mat4),
                     UniformDesc::new("view", UniformType::Mat4),
                     UniformDesc::new("projection", UniformType::Mat4),
+                    UniformDesc::new("normal_mat", UniformType::Mat4),
                     UniformDesc::new("light_color", UniformType::Float3),
                     UniformDesc::new("light_pos", UniformType::Float3),
                 ],
@@ -187,7 +189,7 @@ impl Stage {
         Self {
             pipeline,
             body_state_map,
-            scale: 10_000_000.0,
+            scale: 100_000_000.0,
             run,
             ry: 0.0,
             rx: 0.0,

@@ -1,4 +1,4 @@
-use glam::{vec3, Mat4, Quat, Vec3};
+use glam::{vec3, Mat3, Mat4, Quat, Vec3};
 use image::io::Reader as ImageReader;
 use miniquad::{
     Bindings, Buffer, BufferType, Context, FilterMode, Texture, TextureFormat, TextureParams,
@@ -17,6 +17,7 @@ pub struct Uniforms {
     model: Mat4,
     pub view: Mat4,
     pub projection: Mat4,
+    pub normal_mat: Mat4,
     pub light_color: Vec3,
     pub light_pos: Vec3,
 }
@@ -96,6 +97,7 @@ impl Model {
             );
             let mut unif = uniforms.clone();
             unif.model = model_mat;
+            unif.normal_mat = (model_mat.inverse()).transpose();
 
             context.apply_bindings(self.bindings.as_ref().unwrap());
             context.apply_uniforms(&unif);
