@@ -1,4 +1,4 @@
-use glam::{vec3, Mat3, Mat4, Quat, Vec3};
+use glam::{vec3, Mat4, Quat, Vec3};
 use image::io::Reader as ImageReader;
 use miniquad::{
     Bindings, Buffer, BufferType, Context, FilterMode, Texture, TextureFormat, TextureParams,
