@@ -13,6 +13,10 @@ simulation:
         - 1022.0
         - 0.0
         - 0.0
+      spin:
+        tilt: 1.5424
+        velocity: 0.001
+        angle: 0.0
     - label: Earth
       mass: 5.9722e24
       diameter: 6378000.0
@@ -24,6 +28,10 @@ simulation:
         - 0.0
         - 0.0
         - 0.0
+      spin:
+        tilt: 23.439
+        velocity: 7.2921150e-5
+        angle: 0.0
 models:
   earth:
     shape: sphere

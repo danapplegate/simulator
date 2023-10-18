@@ -7,6 +7,13 @@ use std::mem;
 pub type PositionVector<const N: usize> = Vector<N>;
 pub type VelocityVector<const N: usize> = Vector<N>;
 
+#[derive(Copy, Clone, Debug, Serialize, Deserialize, Default)]
+pub struct SpinCharacteristics<const N: usize> {
+    pub tilt: f32,
+    pub velocity: f32,
+    pub angle: f32,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Body<const N: usize> {
     pub label: String,
@@ -16,6 +23,8 @@ pub struct Body<const N: usize> {
     pub position: PositionVector<N>,
     #[serde(default)]
     pub velocity: VelocityVector<N>,
+    #[serde(default)]
+    pub spin: SpinCharacteristics<N>,
 
     #[serde(skip)]
     pub forces: Vec<ForceVector<N>>,
@@ -28,13 +37,15 @@ impl<const N: usize> Body<N> {
         diameter: f32,
         position: PositionVector<N>,
         velocity: VelocityVector<N>,
+        spin: SpinCharacteristics<N>,
     ) -> Self {
         Self {
             label,
             mass,
             diameter,
-            position: position,
-            velocity: velocity,
+            position,
+            velocity,
+            spin,
             forces: Vec::new(),
         }
     }
@@ -47,6 +58,10 @@ impl<const N: usize> Body<N> {
             &(t_step * &self.velocity) + &(0.5 * t_step.powi(2) * &acceleration_vector);
         self.position = &self.position + &displacement;
         self.velocity = &self.velocity + &(t_step * &acceleration_vector);
+    }
+
+    fn apply_spin(&mut self, t_step: f32) {
+        self.spin.angle = self.spin.angle + (t_step * self.spin.velocity);
     }
 }
 
@@ -63,6 +78,7 @@ fn body_map_from_bodies<'a, const N: usize>(bodies: &'a Vec<Body<N>>) -> BodyMap
                 body.diameter,
                 body.position,
                 body.velocity,
+                body.spin,
             ),
         );
     }
@@ -85,6 +101,7 @@ fn compute_next_step<const N: usize>(body_map: &BodyMap<N>, t_step: f32) -> Body
         };
 
         new_body.apply_forces(t_step);
+        new_body.apply_spin(t_step);
         new_body_map.insert(body.label.clone(), new_body);
     }
 

@@ -86,9 +86,14 @@ impl Model {
         for body_label in &self.bodies {
             let body_state = body_state_map.get(body_label).unwrap();
             let inst_scale = body_state.diameter;
+            let tilt_radians = body_state.tilt.to_radians();
+            let tilt_axis = vec3(0.0, 0.0, -1.0);
+            let rotation_axis = vec3(0.0, 1.0, 0.0);
+            let rotation = Quat::from_axis_angle(rotation_axis, body_state.rot);
+            let tilt = Quat::from_axis_angle(tilt_axis, tilt_radians);
             let model_mat = Mat4::from_scale_rotation_translation(
                 inst_scale * Vec3::ONE / scale,
-                Quat::from_rotation_y(body_state.rot[1]),
+                tilt * rotation,
                 vec3(
                     body_state.pos.x() / scale,
                     body_state.pos.y() / scale,

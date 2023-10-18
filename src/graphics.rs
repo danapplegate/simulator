@@ -24,15 +24,17 @@ pub fn new_conf() -> Conf {
 #[derive(Default)]
 pub struct BodyState {
     pos: Vector3,
-    rot: Vector3,
+    rot: f32,
     diameter: f32,
+    tilt: f32,
 }
 impl From<&Body<3>> for BodyState {
     fn from(body: &Body<3>) -> Self {
         BodyState {
             pos: body.position,
-            rot: Vector3::default(),
+            rot: body.spin.angle,
             diameter: body.diameter,
+            tilt: body.spin.tilt,
         }
     }
 }
@@ -71,9 +73,9 @@ impl EventHandler for Stage {
 
         for (label, body) in step.body_map.iter() {
             self.body_state_map.get_mut(label).unwrap().pos = body.position;
-            self.body_state_map.get_mut(label).unwrap().rot =
-                Vector3::new(0.0, step.t / 1000.0, 0.0);
+            self.body_state_map.get_mut(label).unwrap().rot = body.spin.angle;
             self.body_state_map.get_mut(label).unwrap().diameter = body.diameter;
+            self.body_state_map.get_mut(label).unwrap().tilt = body.spin.tilt;
         }
     }
 
