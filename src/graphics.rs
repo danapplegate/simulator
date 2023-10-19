@@ -1,8 +1,8 @@
 use glam::{vec3, Mat4};
 use miniquad::{
-    conf::Conf, BufferLayout, Comparison, Context, CullFace, EventHandler, KeyCode, PassAction,
-    Pipeline, PipelineParams, Shader, ShaderMeta, UniformBlockLayout, UniformDesc, UniformType,
-    VertexAttribute, VertexFormat, VertexStep,
+    conf::Conf, BufferLayout, Comparison, Context, CullFace, EventHandler, KeyCode, MouseButton,
+    PassAction, Pipeline, PipelineParams, Shader, ShaderMeta, UniformBlockLayout, UniformDesc,
+    UniformType, VertexAttribute, VertexFormat, VertexStep,
 };
 use std::{collections::HashMap, path::PathBuf};
 
@@ -39,6 +39,23 @@ impl From<&Body<3>> for BodyState {
     }
 }
 
+#[derive(Debug)]
+struct DragContext {
+    pub start_x: f32,
+    pub start_y: f32,
+    pub curr_x: f32,
+    pub curr_y: f32,
+}
+
+impl DragContext {
+    fn compute_view_rotations(&self, start_rx: f32, start_ry: f32) -> (f32, f32) {
+        (
+            (self.curr_y - self.start_y) / 100.0 + start_rx,
+            (self.curr_x - self.start_x) / 100.0 + start_ry,
+        )
+    }
+}
+
 pub type BodyStateMap = HashMap<String, BodyState>;
 
 pub struct Stage {
@@ -49,9 +66,43 @@ pub struct Stage {
     ry: f32,
     rx: f32,
     models: HashMap<String, Model>,
+    drag: Option<DragContext>,
 }
 
 impl EventHandler for Stage {
+    fn mouse_button_down_event(
+        &mut self,
+        _ctx: &mut Context,
+        button: miniquad::MouseButton,
+        x: f32,
+        y: f32,
+    ) {
+        if let MouseButton::Left = button {
+            self.drag = Some(DragContext {
+                start_x: x,
+                start_y: y,
+                curr_x: x,
+                curr_y: y,
+            })
+        }
+    }
+
+    fn mouse_motion_event(&mut self, _ctx: &mut Context, x: f32, y: f32) {
+        if let Some(drag) = &mut self.drag {
+            drag.curr_x = x;
+            drag.curr_y = y;
+        }
+    }
+
+    fn mouse_button_up_event(&mut self, _ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
+        if let (MouseButton::Left, Some(drag)) = (button, &mut self.drag) {
+            drag.curr_x = x;
+            drag.curr_y = y;
+            (self.rx, self.ry) = drag.compute_view_rotations(self.rx, self.ry);
+        }
+        self.drag = None;
+    }
+
     fn key_down_event(
         &mut self,
         _ctx: &mut Context,
@@ -86,12 +137,17 @@ impl EventHandler for Stage {
         let light_color = vec3(1.0, 1.0, 1.0);
         let light_pos = vec3(-2.0, 2.0, 4.0);
 
+        let (rx, ry) = match &self.drag {
+            Some(drag) => drag.compute_view_rotations(self.rx, self.ry),
+            None => (self.rx, self.ry),
+        };
+
         let view = Mat4::look_at_rh(
             vec3(0.0, 0.0, 0.3),
             vec3(0.0, 0.0, 0.0),
             vec3(0.0, 1.0, 0.0),
-        ) * Mat4::from_rotation_y(self.ry)
-            * Mat4::from_rotation_x(self.rx);
+        ) * Mat4::from_rotation_y(ry)
+            * Mat4::from_rotation_x(rx);
 
         let projection =
             Mat4::perspective_rh_gl(60.0f32.to_radians(), width / height, 0.01, 1_000_000.0);
@@ -196,6 +252,7 @@ impl Stage {
             ry: 0.0,
             rx: 0.0,
             models: models,
+            drag: None,
         }
     }
 }
