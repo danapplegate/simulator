@@ -4,7 +4,7 @@ use miniquad::{
     PassAction, Pipeline, PipelineParams, Shader, ShaderMeta, UniformBlockLayout, UniformDesc,
     UniformType, VertexAttribute, VertexFormat, VertexStep,
 };
-use std::{collections::HashMap, path::PathBuf};
+use std::{cmp::min, collections::HashMap, path::PathBuf};
 
 use crate::{
     math::Vector3,
@@ -12,7 +12,9 @@ use crate::{
 };
 
 pub mod model;
+pub mod trackball;
 use self::model::{Model, Uniforms};
+use self::trackball::Trackball;
 
 pub fn new_conf() -> Conf {
     Conf {
@@ -39,23 +41,6 @@ impl From<&Body<3>> for BodyState {
     }
 }
 
-#[derive(Debug)]
-struct DragContext {
-    pub start_x: f32,
-    pub start_y: f32,
-    pub curr_x: f32,
-    pub curr_y: f32,
-}
-
-impl DragContext {
-    fn compute_view_rotations(&self, start_rx: f32, start_ry: f32) -> (f32, f32) {
-        (
-            (self.curr_y - self.start_y) / 100.0 + start_rx,
-            (self.curr_x - self.start_x) / 100.0 + start_ry,
-        )
-    }
-}
-
 pub type BodyStateMap = HashMap<String, BodyState>;
 
 pub struct Stage {
@@ -66,41 +51,46 @@ pub struct Stage {
     ry: f32,
     rx: f32,
     models: HashMap<String, Model>,
-    drag: Option<DragContext>,
+    trackball: Trackball,
+}
+
+// Converts screen coordinates to normalized device coordinates [-1, 1]
+fn normalize(x: f32, y: f32, width: f32, height: f32) -> (f32, f32) {
+    let s: f32 = min(width as i32, height as i32) as f32 - 1.0;
+    ((2.0 * x - width + 1.0) / s, (2.0 * y - height + 1.0) / s)
 }
 
 impl EventHandler for Stage {
     fn mouse_button_down_event(
         &mut self,
-        _ctx: &mut Context,
+        ctx: &mut Context,
         button: miniquad::MouseButton,
         x: f32,
         y: f32,
     ) {
         if let MouseButton::Left = button {
-            self.drag = Some(DragContext {
-                start_x: x,
-                start_y: y,
-                curr_x: x,
-                curr_y: y,
-            })
+            let (width, height) = ctx.screen_size();
+            let (nx, ny) = normalize(x, y, width, height);
+            self.trackball.start(nx, ny);
         }
     }
 
-    fn mouse_motion_event(&mut self, _ctx: &mut Context, x: f32, y: f32) {
-        if let Some(drag) = &mut self.drag {
-            drag.curr_x = x;
-            drag.curr_y = y;
+    fn mouse_motion_event(&mut self, ctx: &mut Context, x: f32, y: f32) {
+        if self.trackball.is_active() {
+            let (width, height) = ctx.screen_size();
+            let (nx, ny) = normalize(x, y, width, height);
+            self.trackball.set_xy(nx, ny);
         }
     }
 
-    fn mouse_button_up_event(&mut self, _ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
-        if let (MouseButton::Left, Some(drag)) = (button, &mut self.drag) {
-            drag.curr_x = x;
-            drag.curr_y = y;
-            (self.rx, self.ry) = drag.compute_view_rotations(self.rx, self.ry);
+    fn mouse_button_up_event(&mut self, ctx: &mut Context, button: MouseButton, x: f32, y: f32) {
+        if let MouseButton::Left = button {
+            if self.trackball.is_active() {
+                let (width, height) = ctx.screen_size();
+                let (nx, ny) = normalize(x, y, width, height);
+                self.trackball.end(nx, ny);
+            }
         }
-        self.drag = None;
     }
 
     fn key_down_event(
@@ -137,17 +127,13 @@ impl EventHandler for Stage {
         let light_color = vec3(1.0, 1.0, 1.0);
         let light_pos = vec3(-2.0, 2.0, 4.0);
 
-        let (rx, ry) = match &self.drag {
-            Some(drag) => drag.compute_view_rotations(self.rx, self.ry),
-            None => (self.rx, self.ry),
-        };
+        let view_rot = self.trackball.view_rotation();
 
         let view = Mat4::look_at_rh(
             vec3(0.0, 0.0, 0.3),
             vec3(0.0, 0.0, 0.0),
             vec3(0.0, 1.0, 0.0),
-        ) * Mat4::from_rotation_y(ry)
-            * Mat4::from_rotation_x(rx);
+        ) * Mat4::from_quat(view_rot);
 
         let projection =
             Mat4::perspective_rh_gl(60.0f32.to_radians(), width / height, 0.01, 1_000_000.0);
@@ -252,7 +238,7 @@ impl Stage {
             ry: 0.0,
             rx: 0.0,
             models: models,
-            drag: None,
+            trackball: Trackball::default(),
         }
     }
 }
